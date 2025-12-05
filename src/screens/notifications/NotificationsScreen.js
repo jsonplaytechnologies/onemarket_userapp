@@ -62,7 +62,9 @@ const NotificationsScreen = () => {
       setLoading(true);
       const response = await apiService.get(API_ENDPOINTS.NOTIFICATIONS);
       if (response.success && response.data) {
-        setNotifications(response.data);
+        // API returns { notifications: [], pagination: {} }
+        const notificationsList = response.data.notifications || response.data || [];
+        setNotifications(Array.isArray(notificationsList) ? notificationsList : []);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);

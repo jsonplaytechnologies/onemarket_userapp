@@ -51,10 +51,31 @@ const BookingDetailsScreen = ({ route, navigation }) => {
         }
       };
 
+      const handleJobCompleteRequest = (data) => {
+        if (data.bookingId === bookingId) {
+          // Refresh booking to get new status
+          fetchBookingDetails();
+          // Show alert to user
+          Alert.alert(
+            'Job Completion Request',
+            'The service provider has marked the job as complete. Are you satisfied with the work?',
+            [
+              { text: 'Not Yet', style: 'cancel' },
+              {
+                text: 'Confirm Complete',
+                onPress: handleConfirmComplete,
+              },
+            ]
+          );
+        }
+      };
+
       on('job-start-request', handleJobStartRequest);
+      on('job-complete-request', handleJobCompleteRequest);
 
       return () => {
         off('job-start-request');
+        off('job-complete-request');
       };
     }
   }, [isConnected, bookingId]);
