@@ -32,7 +32,7 @@ const BookingCard = ({ booking, onPress }) => {
   const proFirstName = pro?.firstName || pro?.first_name || pro_first_name || '';
   const proLastName = pro?.lastName || pro?.last_name || pro_last_name || '';
   const proAvatar = pro?.avatar || pro?.avatarUrl || pro?.avatar_url || pro_avatar;
-  const proName = `${proFirstName} ${proLastName}`.trim() || 'Service Provider';
+  const proName = `${proFirstName} ${proLastName}`.trim() || 'Provider';
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -40,42 +40,12 @@ const BookingCard = ({ booking, onPress }) => {
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric',
     });
   };
 
   const formatPrice = (price) => {
     if (!price) return null;
     return price.toLocaleString() + ' XAF';
-  };
-
-  const getStatusMessage = () => {
-    switch (status) {
-      case 'pending':
-        return 'Waiting for provider response';
-      case 'accepted':
-        return 'Waiting for quotation';
-      case 'quotation_sent':
-        return 'Review and pay quotation';
-      case 'paid':
-        return 'Payment confirmed';
-      case 'on_the_way':
-        return 'Provider is on the way';
-      case 'job_start_requested':
-        return 'Confirm job start';
-      case 'job_started':
-        return 'Job in progress';
-      case 'job_complete_requested':
-        return 'Confirm job completion';
-      case 'completed':
-        return 'Job completed';
-      case 'cancelled':
-        return 'Booking cancelled';
-      case 'rejected':
-        return 'Booking rejected';
-      default:
-        return '';
-    }
   };
 
   const needsAction = [
@@ -86,108 +56,92 @@ const BookingCard = ({ booking, onPress }) => {
 
   return (
     <TouchableOpacity
-      className={`bg-white border rounded-xl p-4 mb-3 ${
-        needsAction ? 'border-blue-300' : 'border-gray-200'
+      className={`bg-white rounded-2xl p-4 mb-3 ${
+        needsAction ? 'border-2 border-primary' : 'border border-gray-100'
       }`}
       activeOpacity={0.7}
       onPress={onPress}
     >
-      {/* Header */}
-      <View className="flex-row items-center justify-between mb-3">
-        <Text
-          className="text-xs text-gray-500"
-          style={{ fontFamily: 'Poppins-Regular' }}
-        >
-          {displayBookingNumber}
-        </Text>
+      {/* Top Row */}
+      <View className="flex-row items-start justify-between mb-3">
+        <View className="flex-1 mr-3">
+          <Text
+            className="text-base text-gray-900"
+            style={{ fontFamily: 'Poppins-SemiBold' }}
+            numberOfLines={1}
+          >
+            {displayServiceName}
+          </Text>
+          <Text
+            className="text-xs text-gray-400 mt-0.5"
+            style={{ fontFamily: 'Poppins-Regular' }}
+          >
+            {displayBookingNumber}
+          </Text>
+        </View>
         <StatusBadge status={status} size="small" />
       </View>
 
-      {/* Service Name */}
-      <Text
-        className="text-base font-semibold text-gray-900 mb-2"
-        style={{ fontFamily: 'Poppins-SemiBold' }}
-      >
-        {displayServiceName}
-      </Text>
-
-      {/* Provider Info */}
-      <View className="flex-row items-center mb-3">
+      {/* Provider Row */}
+      <View className="flex-row items-center">
         {proAvatar ? (
           <Image
             source={{ uri: proAvatar }}
-            style={{ width: 36, height: 36, borderRadius: 18 }}
+            style={{ width: 40, height: 40, borderRadius: 20 }}
           />
         ) : (
           <View
             className="bg-gray-100 items-center justify-center"
-            style={{ width: 36, height: 36, borderRadius: 18 }}
+            style={{ width: 40, height: 40, borderRadius: 20 }}
           >
-            <Ionicons name="person" size={18} color={COLORS.textSecondary} />
+            <Text
+              className="text-primary text-sm"
+              style={{ fontFamily: 'Poppins-Bold' }}
+            >
+              {proFirstName.charAt(0).toUpperCase()}{proLastName.charAt(0).toUpperCase()}
+            </Text>
           </View>
         )}
         <View className="ml-3 flex-1">
           <Text
-            className="text-sm font-medium text-gray-800"
+            className="text-sm text-gray-800"
             style={{ fontFamily: 'Poppins-Medium' }}
           >
             {proName}
           </Text>
           <Text
-            className="text-xs text-gray-500"
+            className="text-xs text-gray-400"
             style={{ fontFamily: 'Poppins-Regular' }}
           >
             {formatDate(displayDate)}
           </Text>
         </View>
 
-        {/* Price if quotation sent */}
-        {displayQuotation && (
-          <View className="items-end">
-            <Text
-              className="text-base font-semibold text-gray-900"
-              style={{ fontFamily: 'Poppins-SemiBold' }}
-            >
-              {formatPrice(displayQuotation)}
-            </Text>
-          </View>
+        {/* Price */}
+        {displayQuotation ? (
+          <Text
+            className="text-base text-gray-900"
+            style={{ fontFamily: 'Poppins-SemiBold' }}
+          >
+            {formatPrice(displayQuotation)}
+          </Text>
+        ) : (
+          <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
         )}
       </View>
 
-      {/* Status Message */}
-      <View
-        className={`flex-row items-center pt-3 border-t border-gray-100 ${
-          needsAction ? 'justify-between' : ''
-        }`}
-      >
-        <Text
-          className={`text-xs ${needsAction ? 'text-blue-600' : 'text-gray-500'}`}
-          style={{ fontFamily: 'Poppins-Regular' }}
-        >
-          {getStatusMessage()}
-        </Text>
-
-        {needsAction && (
-          <View className="flex-row items-center">
-            <Text
-              className="text-xs text-blue-600 mr-1"
-              style={{ fontFamily: 'Poppins-Medium' }}
-            >
-              Action Required
-            </Text>
-            <Ionicons name="chevron-forward" size={14} color={COLORS.primary} />
-          </View>
-        )}
-
-        {!needsAction && (
-          <Ionicons
-            name="chevron-forward"
-            size={16}
-            color={COLORS.textSecondary}
-            style={{ marginLeft: 'auto' }}
-          />
-        )}
-      </View>
+      {/* Action Indicator */}
+      {needsAction && (
+        <View className="flex-row items-center justify-center mt-3 pt-3 border-t border-gray-100">
+          <View className="w-2 h-2 bg-primary rounded-full mr-2" />
+          <Text
+            className="text-xs text-primary"
+            style={{ fontFamily: 'Poppins-Medium' }}
+          >
+            Action Required
+          </Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 };

@@ -9,21 +9,28 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Modal,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import apiService from '../../services/api';
-import { API_ENDPOINTS } from '../../constants/api';
+import { API_ENDPOINTS, API_BASE_URL } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
 import { AuthContext } from '../../context/AuthContext';
 import { useBookingSocket } from '../../hooks/useSocket';
 
+const { width: screenWidth } = Dimensions.get('window');
+
 const ChatScreen = ({ route, navigation }) => {
   const { bookingId, booking } = route.params;
-  const { user } = useContext(AuthContext);
+  const { user, token } = useContext(AuthContext);
 
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
@@ -57,7 +64,6 @@ const ChatScreen = ({ route, navigation }) => {
       setLoading(true);
       const response = await apiService.get(API_ENDPOINTS.BOOKING_MESSAGES(bookingId));
       if (response.success && response.data) {
-        // API returns { data: { messages: [...] } }
         const messagesData = response.data.messages || response.data || [];
         setMessages(Array.isArray(messagesData) ? messagesData : []);
       }
@@ -85,16 +91,13 @@ const ChatScreen = ({ route, navigation }) => {
       setSending(true);
       setMessageText('');
 
-      // Send via REST API (socket will handle real-time update)
       const response = await apiService.post(API_ENDPOINTS.BOOKING_MESSAGES(bookingId), {
         content: trimmedText,
         messageType: 'text',
       });
 
       if (response.success && response.data) {
-        // API returns { data: { message: {...} } }
         const newMessage = response.data.message || response.data;
-        // Add message optimistically if socket didn't add it
         setMessages((prev) => {
           const prevMessages = Array.isArray(prev) ? prev : [];
           const exists = prevMessages.some((m) => m.id === newMessage.id);
@@ -105,31 +108,111 @@ const ChatScreen = ({ route, navigation }) => {
         });
       }
 
-      // Also send via socket for real-time
       if (isConnected) {
         send(trimmedText, 'text');
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      setMessageText(trimmedText); // Restore message on error
+      setMessageText(trimmedText);
     } finally {
       setSending(false);
+    }
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Sorry, we need camera roll permissions to send images.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      sendImage(result.assets[0]);
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Sorry, we need camera permissions to take photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      sendImage(result.assets[0]);
+    }
+  };
+
+  const sendImage = async (imageAsset) => {
+    setUploadingImage(true);
+
+    try {
+      const formData = new FormData();
+      const filename = imageAsset.uri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      formData.append('image', {
+        uri: imageAsset.uri,
+        name: filename,
+        type,
+      });
+
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.BOOKING_MESSAGES_IMAGE(bookingId)}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        // If socket is not connected, add message manually (otherwise socket will handle it)
+        if (!isConnected && data.data?.message) {
+          setMessages(prev => {
+            const prevMessages = Array.isArray(prev) ? prev : [];
+            return [...prevMessages, data.data.message];
+          });
+        }
+        flatListRef.current?.scrollToEnd({ animated: true });
+      } else {
+        alert(data.message || 'Failed to send image');
+      }
+    } catch (error) {
+      console.error('Error sending image:', error);
+      alert('Failed to send image. Please try again.');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
   const handleTyping = (text) => {
     setMessageText(text);
 
-    // Clear existing timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // Send typing indicator
     if (isConnected && text.length > 0) {
       typing(true);
 
-      // Stop typing after 2 seconds of inactivity
       typingTimeoutRef.current = setTimeout(() => {
         typing(false);
       }, 2000);
@@ -187,6 +270,8 @@ const ChatScreen = ({ route, navigation }) => {
   const renderMessage = ({ item, index }) => {
     const isOwn = isOwnMessage(item);
     const showDateHeader = shouldShowDateHeader(item, index);
+    const messageType = item.message_type || item.type || 'text';
+    const isImage = messageType === 'image';
 
     return (
       <View>
@@ -227,39 +312,81 @@ const ChatScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          <View
-            className={`max-w-[75%] px-4 py-3 rounded-2xl ${
-              isOwn
-                ? 'bg-blue-600 rounded-br-md'
-                : 'bg-white border border-gray-200 rounded-bl-md'
-            }`}
-          >
-            <Text
-              className={`text-base ${isOwn ? 'text-white' : 'text-gray-900'}`}
-              style={{ fontFamily: 'Poppins-Regular' }}
+          {isImage ? (
+            <TouchableOpacity
+              onPress={() => setSelectedImage(item.content)}
+              activeOpacity={0.9}
             >
-              {item.content}
-            </Text>
-
-            <View className={`flex-row items-center mt-1 ${isOwn ? 'justify-end' : ''}`}>
+              <View
+                className={`rounded-2xl overflow-hidden ${
+                  isOwn ? 'rounded-br-md' : 'rounded-bl-md'
+                }`}
+                style={{ maxWidth: screenWidth * 0.65 }}
+              >
+                <Image
+                  source={{ uri: item.content }}
+                  style={{
+                    width: screenWidth * 0.65,
+                    height: screenWidth * 0.65,
+                    borderRadius: 16,
+                  }}
+                  resizeMode="cover"
+                />
+                <View
+                  className={`absolute bottom-2 ${isOwn ? 'right-2' : 'left-2'} px-2 py-0.5 rounded-full flex-row items-center`}
+                  style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+                >
+                  <Text
+                    className="text-white text-xs"
+                    style={{ fontFamily: 'Poppins-Regular' }}
+                  >
+                    {formatTime(item.createdAt || item.created_at)}
+                  </Text>
+                  {isOwn && (
+                    <Ionicons
+                      name={item.isRead || item.is_read ? 'checkmark-done' : 'checkmark'}
+                      size={12}
+                      color="#FFFFFF"
+                      style={{ marginLeft: 4 }}
+                    />
+                  )}
+                </View>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <View
+              className={`max-w-[75%] px-4 py-3 rounded-2xl ${
+                isOwn
+                  ? 'bg-blue-600 rounded-br-md'
+                  : 'bg-white border border-gray-200 rounded-bl-md'
+              }`}
+            >
               <Text
-                className={`text-xs ${isOwn ? 'text-blue-200' : 'text-gray-400'}`}
+                className={`text-base ${isOwn ? 'text-white' : 'text-gray-900'}`}
                 style={{ fontFamily: 'Poppins-Regular' }}
               >
-                {formatTime(item.createdAt || item.created_at)}
+                {item.content}
               </Text>
 
-              {/* Read Receipt (for own messages) */}
-              {isOwn && (
-                <Ionicons
-                  name={item.isRead || item.is_read ? 'checkmark-done' : 'checkmark'}
-                  size={14}
-                  color={item.isRead || item.is_read ? '#93C5FD' : '#BFDBFE'}
-                  style={{ marginLeft: 4 }}
-                />
-              )}
+              <View className={`flex-row items-center mt-1 ${isOwn ? 'justify-end' : ''}`}>
+                <Text
+                  className={`text-xs ${isOwn ? 'text-blue-200' : 'text-gray-400'}`}
+                  style={{ fontFamily: 'Poppins-Regular' }}
+                >
+                  {formatTime(item.createdAt || item.created_at)}
+                </Text>
+
+                {isOwn && (
+                  <Ionicons
+                    name={item.isRead || item.is_read ? 'checkmark-done' : 'checkmark'}
+                    size={14}
+                    color={item.isRead || item.is_read ? '#93C5FD' : '#BFDBFE'}
+                    style={{ marginLeft: 4 }}
+                  />
+                )}
+              </View>
             </View>
-          </View>
+          )}
         </View>
       </View>
     );
@@ -344,7 +471,6 @@ const ChatScreen = ({ route, navigation }) => {
           )}
         </View>
 
-        {/* Connection Status */}
         <View
           className={`w-2 h-2 rounded-full ${
             isConnected ? 'bg-green-500' : 'bg-gray-400'
@@ -356,7 +482,7 @@ const ChatScreen = ({ route, navigation }) => {
       <FlatList
         ref={flatListRef}
         data={Array.isArray(messages) ? messages : []}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => `${item.id || 'msg'}-${index}`}
         renderItem={renderMessage}
         contentContainerStyle={{
           paddingHorizontal: 16,
@@ -406,8 +532,38 @@ const ChatScreen = ({ route, navigation }) => {
         </View>
       )}
 
+      {/* Uploading Indicator */}
+      {uploadingImage && (
+        <View className="px-4 pb-2 flex-row items-center">
+          <ActivityIndicator size="small" color={COLORS.primary} />
+          <Text
+            className="text-sm text-gray-500 ml-2"
+            style={{ fontFamily: 'Poppins-Regular' }}
+          >
+            Sending image...
+          </Text>
+        </View>
+      )}
+
       {/* Input Area */}
       <View className="bg-white border-t border-gray-200 px-4 py-3 flex-row items-end">
+        {/* Image Picker Buttons */}
+        <TouchableOpacity
+          className="w-10 h-10 items-center justify-center"
+          onPress={pickImage}
+          disabled={uploadingImage}
+        >
+          <Ionicons name="image-outline" size={24} color={COLORS.primary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          className="w-10 h-10 items-center justify-center mr-2"
+          onPress={takePhoto}
+          disabled={uploadingImage}
+        >
+          <Ionicons name="camera-outline" size={24} color={COLORS.primary} />
+        </TouchableOpacity>
+
         <TextInput
           className="flex-1 bg-gray-100 rounded-2xl px-4 py-3 text-gray-900 max-h-[100px]"
           style={{ fontFamily: 'Poppins-Regular' }}
@@ -438,6 +594,32 @@ const ChatScreen = ({ route, navigation }) => {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Image Preview Modal */}
+      <Modal
+        visible={!!selectedImage}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}
+      >
+        <View className="flex-1 bg-black">
+          <View className="flex-1 pt-12">
+            <TouchableOpacity
+              className="absolute top-12 right-4 z-10 w-10 h-10 bg-black/50 rounded-full items-center justify-center"
+              onPress={() => setSelectedImage(null)}
+            >
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            {selectedImage && (
+              <Image
+                source={{ uri: selectedImage }}
+                className="flex-1"
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };

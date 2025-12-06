@@ -6,11 +6,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  Image,
+  ImageBackground,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import apiService from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
+import { getServiceImage } from '../../constants/images';
 
 const CategoryServicesScreen = ({ route, navigation }) => {
   const { categoryId, categoryName } = route.params;
@@ -38,10 +41,8 @@ const CategoryServicesScreen = ({ route, navigation }) => {
     try {
       setLoading(true);
       const response = await apiService.get(API_ENDPOINTS.CATEGORY_SERVICES(categoryId));
-      // API returns { data: { category: {...}, services: [...] } }
       const servicesData = response.data?.services ||
         (Array.isArray(response.data) ? response.data : []);
-      // Map snake_case to camelCase
       const mappedServices = servicesData.map(service => ({
         ...service,
         basePrice: service.base_price || service.basePrice,
@@ -59,38 +60,75 @@ const CategoryServicesScreen = ({ route, navigation }) => {
     }
   };
 
-  const getServiceIcon = (serviceName) => {
-    const name = serviceName.toLowerCase();
-    if (name.includes('plumb')) return 'pipe';
-    if (name.includes('electr')) return 'lightning-bolt';
-    if (name.includes('clean')) return 'broom';
-    if (name.includes('paint')) return 'format-paint';
-    if (name.includes('garden')) return 'flower';
-    if (name.includes('car')) return 'car';
-    if (name.includes('repair')) return 'hammer-wrench';
-    return 'tools';
-  };
+  const categoryImage = getServiceImage(categoryName);
+
+  const renderHeader = () => (
+    <View className="bg-white">
+      {/* Hero with back button */}
+      <View className="mx-4 mt-14 rounded-2xl overflow-hidden">
+        <ImageBackground
+          source={{ uri: categoryImage }}
+          style={{ height: 140 }}
+          imageStyle={{ borderRadius: 16 }}
+        >
+          <View
+            className="flex-1 p-4"
+            style={{ backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 16 }}
+          >
+            {/* Back Button */}
+            <TouchableOpacity
+              className="w-10 h-10 bg-white/20 rounded-full items-center justify-center"
+              activeOpacity={0.7}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={20} color="#FFF" />
+            </TouchableOpacity>
+
+            {/* Title */}
+            <View className="flex-1 justify-end">
+              <Text
+                className="text-white text-xl"
+                style={{ fontFamily: 'Poppins-Bold' }}
+              >
+                {categoryName}
+              </Text>
+              <Text
+                className="text-white/70 text-sm"
+                style={{ fontFamily: 'Poppins-Regular' }}
+              >
+                {filteredServices.length} services available
+              </Text>
+            </View>
+          </View>
+        </ImageBackground>
+      </View>
+
+      {/* Search Bar */}
+      <View className="mx-4 mt-4">
+        <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3">
+          <Ionicons name="search-outline" size={20} color="#9CA3AF" />
+          <TextInput
+            className="flex-1 ml-3 text-gray-900"
+            style={{ fontFamily: 'Poppins-Regular', fontSize: 14 }}
+            placeholder="Search services..."
+            placeholderTextColor="#9CA3AF"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </View>
+  );
 
   if (loading) {
     return (
-      <View className="flex-1 bg-gray-50">
-        {/* Header */}
-        <View className="bg-white border-b border-gray-200 px-6 pt-12 pb-4 flex-row items-center">
-          <TouchableOpacity
-            className="mr-4"
-            activeOpacity={0.7}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-          </TouchableOpacity>
-          <Text
-            className="text-xl font-semibold text-gray-900 flex-1"
-            style={{ fontFamily: 'Poppins-SemiBold' }}
-          >
-            {categoryName}
-          </Text>
-        </View>
-
+      <View className="flex-1 bg-white">
+        {renderHeader()}
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
@@ -99,123 +137,97 @@ const CategoryServicesScreen = ({ route, navigation }) => {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="bg-white border-b border-gray-200 px-6 pt-12 pb-4 flex-row items-center">
-        <TouchableOpacity
-          className="mr-4"
-          activeOpacity={0.7}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <Text
-          className="text-xl font-semibold text-gray-900 flex-1"
-          style={{ fontFamily: 'Poppins-SemiBold' }}
-        >
-          {categoryName}
-        </Text>
-      </View>
+    <View className="flex-1 bg-white">
+      {renderHeader()}
 
-      <ScrollView className="flex-1">
-        {/* Search Bar */}
-        <View className="px-6 pt-4 pb-2">
-          <View className="flex-row items-center bg-white border border-gray-200 rounded-lg px-4 py-3">
-            <Ionicons name="search-outline" size={20} color={COLORS.textSecondary} />
-            <TextInput
-              className="flex-1 ml-3 text-gray-900"
-              style={{ fontFamily: 'Poppins-Regular', fontSize: 14 }}
-              placeholder={`Search in ${categoryName}...`}
-              placeholderTextColor={COLORS.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color={COLORS.textSecondary} />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        {/* Services Count */}
-        <View className="px-6 pt-4 pb-2">
-          <Text
-            className="text-base font-medium text-gray-700"
-            style={{ fontFamily: 'Poppins-Medium' }}
-          >
-            {filteredServices.length} {filteredServices.length === 1 ? 'Service' : 'Services'}{' '}
-            Available
-          </Text>
-        </View>
-
-        {/* Services List */}
-        <View className="px-6 pb-6">
-          {filteredServices.length === 0 ? (
-            <View className="items-center justify-center py-12">
-              <Ionicons name="search-outline" size={64} color={COLORS.textSecondary} />
-              <Text
-                className="text-gray-500 text-center mt-4"
-                style={{ fontFamily: 'Poppins-Regular' }}
-              >
-                {searchQuery ? 'No services found' : 'No services available'}
-              </Text>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 }}
+      >
+        {filteredServices.length === 0 ? (
+          <View className="items-center justify-center py-20">
+            <View className="w-20 h-20 bg-gray-100 rounded-full items-center justify-center mb-4">
+              <Ionicons name="search-outline" size={36} color="#9CA3AF" />
             </View>
-          ) : (
-            filteredServices.map((service) => (
-              <TouchableOpacity
-                key={service.id}
-                className="flex-row items-center bg-white border border-gray-200 rounded-xl p-4 mb-3"
-                activeOpacity={0.7}
-                onPress={() =>
-                  navigation.navigate('FindPros', {
-                    serviceId: service.id,
-                    serviceName: service.name,
-                  })
-                }
-              >
+            <Text
+              className="text-lg text-gray-900"
+              style={{ fontFamily: 'Poppins-SemiBold' }}
+            >
+              No Services Found
+            </Text>
+            <Text
+              className="text-sm text-gray-400 text-center mt-2"
+              style={{ fontFamily: 'Poppins-Regular' }}
+            >
+              {searchQuery ? 'Try a different search' : 'Check back later'}
+            </Text>
+          </View>
+        ) : (
+          filteredServices.map((service) => (
+            <TouchableOpacity
+              key={service.id}
+              className="mb-3 rounded-2xl overflow-hidden bg-white border border-gray-100"
+              style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 8,
+                elevation: 2,
+              }}
+              activeOpacity={0.9}
+              onPress={() =>
+                navigation.navigate('FindPros', {
+                  serviceId: service.id,
+                  serviceName: service.name,
+                })
+              }
+            >
+              <View className="flex-row items-center p-4">
                 {/* Service Icon */}
-                <View className="bg-blue-50 rounded-lg p-2 mr-3">
-                  <MaterialCommunityIcons
-                    name={getServiceIcon(service.name)}
-                    size={32}
-                    color={COLORS.primary}
-                  />
+                <View className="w-14 h-14 bg-blue-50 rounded-xl items-center justify-center mr-4">
+                  <Ionicons name="construct-outline" size={26} color={COLORS.primary} />
                 </View>
 
                 {/* Service Info */}
                 <View className="flex-1">
                   <Text
-                    className="text-base font-semibold text-gray-900"
+                    className="text-base text-gray-900"
                     style={{ fontFamily: 'Poppins-SemiBold' }}
                   >
                     {service.name}
                   </Text>
+
                   {service.description && (
                     <Text
-                      className="text-xs text-gray-500 mt-0.5"
+                      className="text-xs text-gray-400 mt-1"
                       style={{ fontFamily: 'Poppins-Regular' }}
-                      numberOfLines={2}
+                      numberOfLines={1}
                     >
                       {service.description}
                     </Text>
                   )}
+
                   {service.basePrice && (
-                    <Text
-                      className="text-sm text-gray-700 mt-1"
-                      style={{ fontFamily: 'Poppins-Medium' }}
-                    >
-                      From {parseFloat(service.basePrice).toLocaleString()} XAF
-                    </Text>
+                    <View className="flex-row items-center mt-2">
+                      <Text
+                        className="text-sm text-primary"
+                        style={{ fontFamily: 'Poppins-SemiBold' }}
+                      >
+                        From {parseFloat(service.basePrice).toLocaleString()} XAF
+                      </Text>
+                    </View>
                   )}
                 </View>
 
-                {/* Arrow Icon */}
-                <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-              </TouchableOpacity>
-            ))
-          )}
-        </View>
+                {/* Arrow */}
+                <View className="bg-gray-100 w-8 h-8 rounded-full items-center justify-center">
+                  <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </View>
   );

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Button from '../../components/common/Button';
 import CountryPicker from '../../components/common/CountryPicker';
 import { DEFAULT_COUNTRY } from '../../constants/countries';
+import { LogoIcon } from '../../components/common/Logo';
 import apiService from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 
@@ -18,10 +19,9 @@ const PhoneInputScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
 
-
   const validatePhoneNumber = () => {
     if (!phoneNumber || phoneNumber.length < MIN_PHONE_LENGTH) {
-      setError(`Phone number must be ${MIN_PHONE_LENGTH}-${MAX_PHONE_LENGTH} digits`);
+      setError(`Enter ${MIN_PHONE_LENGTH}-${MAX_PHONE_LENGTH} digits`);
       return false;
     }
     setError('');
@@ -63,26 +63,31 @@ const PhoneInputScreen = ({ navigation }) => {
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
-      <View className="px-6 pt-4 pb-6">
+      <View className="px-6 pt-2 pb-8">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="w-10 h-10 items-center justify-center rounded-full bg-gray-100 mb-6"
+          className="w-10 h-10 items-center justify-center rounded-full bg-gray-50 mb-8"
+          activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={22} color="#111827" />
+          <Ionicons name="arrow-back" size={20} color="#111827" />
         </TouchableOpacity>
 
+        <View className="mb-6">
+          <LogoIcon size={48} />
+        </View>
+
         <Text
-          className="text-2xl font-bold text-gray-900 mb-2"
+          className="text-2xl text-gray-900 mb-2"
           style={{ fontFamily: 'Poppins-Bold' }}
         >
-          Enter your phone number
+          What's your number?
         </Text>
 
         <Text
-          className="text-base text-gray-500"
+          className="text-base text-gray-400"
           style={{ fontFamily: 'Poppins-Regular' }}
         >
-          We'll send you a verification code
+          We'll send you a code to verify
         </Text>
       </View>
 
@@ -92,24 +97,25 @@ const PhoneInputScreen = ({ navigation }) => {
         <View className="flex-row items-center">
           {/* Country Code Picker */}
           <TouchableOpacity
-            className="h-14 flex-row items-center border border-gray-300 rounded-xl px-3 mr-3 bg-white"
+            className="h-14 flex-row items-center bg-gray-50 rounded-xl px-4 mr-3"
             onPress={() => setShowCountryPicker(true)}
+            activeOpacity={0.7}
           >
-            <Text className="text-xl mr-2">{selectedCountry.flag}</Text>
+            <Text className="text-lg mr-2">{selectedCountry.flag}</Text>
             <Text
-              className="text-base text-gray-900 mr-1"
+              className="text-base text-gray-900"
               style={{ fontFamily: 'Poppins-Medium' }}
             >
               {selectedCountry.code}
             </Text>
-            <Ionicons name="chevron-down" size={16} color="#6B7280" />
+            <Ionicons name="chevron-down" size={14} color="#9CA3AF" className="ml-1" />
           </TouchableOpacity>
 
           {/* Phone Number Input */}
           <View className="flex-1">
             <View
-              className={`h-14 flex-row items-center border rounded-xl px-4 bg-white ${
-                error ? 'border-error' : phoneNumber ? 'border-primary' : 'border-gray-300'
+              className={`h-14 flex-row items-center bg-gray-50 rounded-xl px-4 ${
+                error ? 'border-2 border-red-400' : phoneNumber ? 'border-2 border-primary' : ''
               }`}
             >
               <TextInput
@@ -123,35 +129,24 @@ const PhoneInputScreen = ({ navigation }) => {
                 maxLength={MAX_PHONE_LENGTH}
                 autoFocus
               />
-              {phoneNumber.length > 0 && (
-                <Text className="text-sm text-gray-400">
-                  {phoneNumber.length}/{MAX_PHONE_LENGTH}
-                </Text>
-              )}
             </View>
           </View>
         </View>
 
         {/* Error Message */}
         {error && (
-          <View className="flex-row items-center mt-2">
-            <Ionicons name="alert-circle" size={16} color="#EF4444" />
-            <Text className="text-error text-sm ml-1">{error}</Text>
-          </View>
+          <Text
+            className="text-red-500 text-sm mt-2"
+            style={{ fontFamily: 'Poppins-Regular' }}
+          >
+            {error}
+          </Text>
         )}
-
-        {/* Helper Text */}
-        <Text
-          className="text-sm text-gray-400 mt-4"
-          style={{ fontFamily: 'Poppins-Regular' }}
-        >
-          Enter your {MIN_PHONE_LENGTH}-{MAX_PHONE_LENGTH} digit mobile number
-        </Text>
 
         {/* Send OTP Button */}
         <View className="mt-8">
           <Button
-            title={loading ? 'Sending...' : 'Continue'}
+            title="Continue"
             onPress={handleSendOTP}
             disabled={!isPhoneValid}
             loading={loading}

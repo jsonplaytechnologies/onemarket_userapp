@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,13 +14,14 @@ import apiService from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
 import { BookingCard } from '../../components/bookings';
-import { useSocket } from '../../hooks/useSocket';
+import { useNotifications } from '../../context/NotificationContext';
+import { useSocketContext } from '../../context/SocketContext';
 
 const STATUS_FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'active', label: 'Active' },
   { key: 'pending', label: 'Pending' },
-  { key: 'completed', label: 'Completed' },
+  { key: 'completed', label: 'Done' },
   { key: 'cancelled', label: 'Cancelled' },
 ];
 
@@ -43,15 +45,24 @@ const BookingsScreen = ({ navigation }) => {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const { isConnected, on, off } = useSocket();
+  const { refreshTrigger } = useNotifications();
+  const { isConnected, on, off } = useSocketContext();
 
+  // Fetch on focus
   useFocusEffect(
     useCallback(() => {
       fetchBookings(1, true);
     }, [])
   );
 
-  // Listen for real-time booking updates
+  // Auto-refresh when socket events trigger refreshTrigger
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      fetchBookings(1, true);
+    }
+  }, [refreshTrigger]);
+
+  // Listen for real-time booking status changes
   useEffect(() => {
     if (isConnected) {
       on('booking-status-changed', (data) => {
@@ -64,19 +75,11 @@ const BookingsScreen = ({ navigation }) => {
         );
       });
 
-      on('notification', (notification) => {
-        if (notification.type?.includes('booking')) {
-          // Refresh bookings on booking-related notifications
-          fetchBookings(1, true);
-        }
-      });
-
       return () => {
         off('booking-status-changed');
-        off('notification');
       };
     }
-  }, [isConnected]);
+  }, [isConnected, on, off]);
 
   // Apply filter when bookings or filter changes
   useEffect(() => {
@@ -176,69 +179,57 @@ const BookingsScreen = ({ navigation }) => {
   };
 
   const renderHeader = () => (
-    <View className="bg-white border-b border-gray-200 px-6 pt-12 pb-4">
+    <View className="bg-white px-6 pt-14 pb-4">
       <Text
-        className="text-2xl font-bold text-gray-900"
+        className="text-2xl text-gray-900"
         style={{ fontFamily: 'Poppins-Bold' }}
       >
-        My Bookings
+        Bookings
       </Text>
 
       {/* Filter Pills */}
-      <FlatList
+      <ScrollView
         horizontal
-        data={STATUS_FILTERS}
-        keyExtractor={(item) => item.key}
         showsHorizontalScrollIndicator={false}
         className="mt-4 -mx-6 px-6"
-        renderItem={({ item }) => {
+        contentContainerStyle={{ paddingRight: 24 }}
+      >
+        {STATUS_FILTERS.map((item) => {
           const isSelected = selectedFilter === item.key;
           const count = getFilterCount(item.key);
 
           return (
             <TouchableOpacity
-              className={`mr-2 px-4 py-2 rounded-full flex-row items-center ${
-                isSelected ? 'bg-blue-600' : 'bg-gray-100'
+              key={item.key}
+              className={`mr-2 px-4 py-2.5 rounded-full ${
+                isSelected ? 'bg-primary' : 'bg-gray-100'
               }`}
               activeOpacity={0.7}
               onPress={() => setSelectedFilter(item.key)}
             >
               <Text
-                className={`text-sm font-medium ${
-                  isSelected ? 'text-white' : 'text-gray-700'
+                className={`text-sm ${
+                  isSelected ? 'text-white' : 'text-gray-600'
                 }`}
                 style={{ fontFamily: 'Poppins-Medium' }}
               >
                 {item.label}
+                {count > 0 && ` (${count})`}
               </Text>
-              {count > 0 && (
-                <View
-                  className={`ml-2 px-1.5 py-0.5 rounded-full ${
-                    isSelected ? 'bg-blue-500' : 'bg-gray-200'
-                  }`}
-                >
-                  <Text
-                    className={`text-xs ${
-                      isSelected ? 'text-white' : 'text-gray-600'
-                    }`}
-                    style={{ fontFamily: 'Poppins-Medium' }}
-                  >
-                    {count}
-                  </Text>
-                </View>
-              )}
             </TouchableOpacity>
           );
-        }}
-      />
+        })}
+      </ScrollView>
     </View>
   );
 
   const renderEmptyState = () => (
-    <View className="flex-1 items-center justify-center px-6 py-16">
-      <Ionicons name="calendar-outline" size={64} color="#9CA3AF" />
+    <View className="flex-1 items-center justify-center px-6 py-20">
+      <View className="w-20 h-20 bg-gray-100 rounded-full items-center justify-center mb-6">
+        <Ionicons name="calendar-outline" size={36} color="#9CA3AF" />
+      </View>
       <Text
-        className="text-xl font-semibold text-gray-900 mt-4 text-center"
+        className="text-lg text-gray-900 text-center"
         style={{ fontFamily: 'Poppins-SemiBold' }}
       >
         {selectedFilter === 'all'
@@ -246,23 +237,23 @@ const BookingsScreen = ({ navigation }) => {
           : `No ${STATUS_FILTERS.find((f) => f.key === selectedFilter)?.label} Bookings`}
       </Text>
       <Text
-        className="text-base text-gray-500 text-center mt-2"
+        className="text-sm text-gray-400 text-center mt-2 px-8"
         style={{ fontFamily: 'Poppins-Regular' }}
       >
         {selectedFilter === 'all'
-          ? 'Book a service provider to get started'
-          : 'No bookings match this filter'}
+          ? 'Book a service to get started'
+          : 'Try a different filter'}
       </Text>
 
       {selectedFilter === 'all' && (
         <TouchableOpacity
-          className="mt-6 bg-blue-600 px-6 py-3 rounded-xl"
+          className="mt-8 bg-primary px-8 py-3.5 rounded-xl"
           activeOpacity={0.8}
           onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
         >
           <Text
-            className="text-white font-medium"
-            style={{ fontFamily: 'Poppins-Medium' }}
+            className="text-white"
+            style={{ fontFamily: 'Poppins-SemiBold' }}
           >
             Browse Services
           </Text>
@@ -283,7 +274,7 @@ const BookingsScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-gray-50">
+      <View className="flex-1 bg-white">
         {renderHeader()}
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={COLORS.primary} />
@@ -293,7 +284,7 @@ const BookingsScreen = ({ navigation }) => {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-white">
       {renderHeader()}
 
       <FlatList
@@ -313,6 +304,7 @@ const BookingsScreen = ({ navigation }) => {
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
           />
         }
         ListEmptyComponent={renderEmptyState}

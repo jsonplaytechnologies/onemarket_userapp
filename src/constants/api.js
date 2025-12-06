@@ -29,6 +29,7 @@ export const API_ENDPOINTS = {
   BOOKING_PAY: (id) => `/api/bookings/${id}/pay`,
   BOOKING_PAYMENT_STATUS: (id) => `/api/bookings/${id}/payment-status`,
   BOOKING_MESSAGES: (id) => `/api/bookings/${id}/messages`,
+  BOOKING_MESSAGES_IMAGE: (id) => `/api/bookings/${id}/messages/image`,
   BOOKING_MESSAGES_READ: (id) => `/api/bookings/${id}/messages/read`,
   BOOKING_CONFIRM_START: (id) => `/api/bookings/${id}/confirm-start`,
   BOOKING_CONFIRM_COMPLETE: (id) => `/api/bookings/${id}/confirm-complete`,
@@ -42,6 +43,9 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS_UNREAD_COUNT: '/api/notifications/unread-count',
   NOTIFICATION_READ: (id) => `/api/notifications/${id}/read`,
   NOTIFICATIONS_READ_ALL: '/api/notifications/read-all',
+
+  // Conversations/Chats
+  CONVERSATIONS: '/api/users/me/conversations',
 
   // Zones
   ZONES: '/api/zones',

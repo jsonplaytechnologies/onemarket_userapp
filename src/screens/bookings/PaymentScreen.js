@@ -249,6 +249,27 @@ const PaymentScreen = ({ route, navigation }) => {
         </View>
       </View>
 
+      {/* Payment Protection Info */}
+      <View className="bg-green-50 mx-6 mt-4 p-4 rounded-xl border border-green-200">
+        <View className="flex-row items-start">
+          <Ionicons name="shield-checkmark" size={20} color="#15803D" />
+          <View className="ml-3 flex-1">
+            <Text
+              className="text-sm font-medium text-green-800"
+              style={{ fontFamily: 'Poppins-Medium' }}
+            >
+              Payment Protection
+            </Text>
+            <Text
+              className="text-xs text-green-700 mt-1"
+              style={{ fontFamily: 'Poppins-Regular' }}
+            >
+              Your payment is held securely. The service provider will only receive the money after you confirm the job is completed.
+            </Text>
+          </View>
+        </View>
+      </View>
+
       {/* Pay Button */}
       <View className="px-6 mt-6">
         <TouchableOpacity

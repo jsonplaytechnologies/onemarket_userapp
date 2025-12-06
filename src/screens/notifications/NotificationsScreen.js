@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNotifications } from '../../context/NotificationContext';
 import apiService from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
@@ -47,29 +48,51 @@ const NOTIFICATION_COLORS = {
 
 const NotificationsScreen = () => {
   const navigation = useNavigation();
+  const { markAllAsRead } = useNotifications();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      fetchNotifications();
+      fetchNotificationsAndMarkRead();
     }, [])
   );
 
-  const fetchNotifications = async () => {
+  const fetchNotificationsAndMarkRead = async () => {
     try {
       setLoading(true);
       const response = await apiService.get(API_ENDPOINTS.NOTIFICATIONS);
       if (response.success && response.data) {
-        // API returns { notifications: [], pagination: {} }
         const notificationsList = response.data.notifications || response.data || [];
-        setNotifications(Array.isArray(notificationsList) ? notificationsList : []);
+        const notifs = Array.isArray(notificationsList) ? notificationsList : [];
+
+        // Mark all notifications as read in UI immediately
+        const markedAsRead = notifs.map(n => ({ ...n, is_read: true }));
+        setNotifications(markedAsRead);
+
+        // Mark all as read on server and update badge count
+        const hasUnread = notifs.some(n => !n.is_read);
+        if (hasUnread) {
+          markAllAsRead();
+        }
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await apiService.get(API_ENDPOINTS.NOTIFICATIONS);
+      if (response.success && response.data) {
+        const notificationsList = response.data.notifications || response.data || [];
+        setNotifications(Array.isArray(notificationsList) ? notificationsList : []);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
     }
   };
 
@@ -79,35 +102,9 @@ const NotificationsScreen = () => {
     setRefreshing(false);
   };
 
-  const handleNotificationPress = async (notification) => {
-    // Mark as read
-    if (!notification.is_read) {
-      try {
-        await apiService.patch(API_ENDPOINTS.NOTIFICATION_READ(notification.id));
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n.id === notification.id ? { ...n, is_read: true } : n
-          )
-        );
-      } catch (error) {
-        console.error('Error marking notification as read:', error);
-      }
-    }
-
-    // Navigate to relevant screen
+  const handleNotificationPress = (notification) => {
     if (notification.booking_id) {
       navigation.navigate('BookingDetails', { bookingId: notification.booking_id });
-    }
-  };
-
-  const handleMarkAllRead = async () => {
-    try {
-      await apiService.patch(API_ENDPOINTS.NOTIFICATIONS_READ_ALL);
-      setNotifications((prev) =>
-        prev.map((n) => ({ ...n, is_read: true }))
-      );
-    } catch (error) {
-      console.error('Error marking all as read:', error);
     }
   };
 
@@ -119,10 +116,10 @@ const NotificationsScreen = () => {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return 'Now';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
 
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -133,19 +130,15 @@ const NotificationsScreen = () => {
   const getIcon = (type) => NOTIFICATION_ICONS[type] || NOTIFICATION_ICONS.default;
   const getColor = (type) => NOTIFICATION_COLORS[type] || NOTIFICATION_COLORS.default;
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-
   const renderNotification = ({ item }) => (
     <TouchableOpacity
-      className={`flex-row items-start px-4 py-4 border-b border-gray-100 ${
-        !item.is_read ? 'bg-blue-50' : 'bg-white'
-      }`}
+      className="flex-row items-start px-6 py-4"
       activeOpacity={0.7}
       onPress={() => handleNotificationPress(item)}
     >
       <View
-        className="w-10 h-10 rounded-full items-center justify-center mr-3"
-        style={{ backgroundColor: `${getColor(item.type)}20` }}
+        className="w-11 h-11 rounded-full items-center justify-center mr-4"
+        style={{ backgroundColor: `${getColor(item.type)}15` }}
       >
         <Ionicons
           name={getIcon(item.type)}
@@ -155,10 +148,10 @@ const NotificationsScreen = () => {
       </View>
 
       <View className="flex-1">
-        <View className="flex-row items-center justify-between">
+        <View className="flex-row items-start justify-between">
           <Text
-            className={`text-sm flex-1 ${
-              !item.is_read ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'
+            className={`text-sm flex-1 mr-2 ${
+              !item.is_read ? 'text-gray-900' : 'text-gray-600'
             }`}
             style={{ fontFamily: !item.is_read ? 'Poppins-SemiBold' : 'Poppins-Medium' }}
             numberOfLines={1}
@@ -166,7 +159,7 @@ const NotificationsScreen = () => {
             {item.title}
           </Text>
           <Text
-            className="text-xs text-gray-400 ml-2"
+            className="text-xs text-gray-400"
             style={{ fontFamily: 'Poppins-Regular' }}
           >
             {formatTime(item.created_at)}
@@ -174,44 +167,46 @@ const NotificationsScreen = () => {
         </View>
 
         <Text
-          className="text-sm text-gray-500 mt-1"
+          className="text-sm text-gray-400 mt-1"
           style={{ fontFamily: 'Poppins-Regular' }}
           numberOfLines={2}
         >
           {item.message}
         </Text>
-
-        {!item.is_read && (
-          <View className="w-2 h-2 rounded-full bg-blue-500 absolute right-0 top-0" />
-        )}
       </View>
+
+      {!item.is_read && (
+        <View className="w-2 h-2 rounded-full bg-primary mt-2 ml-2" />
+      )}
     </TouchableOpacity>
   );
 
   const renderEmptyState = () => (
     <View className="flex-1 items-center justify-center px-6 py-20">
-      <Ionicons name="notifications-off-outline" size={64} color="#D1D5DB" />
+      <View className="w-20 h-20 bg-gray-100 rounded-full items-center justify-center mb-6">
+        <Ionicons name="notifications-off-outline" size={36} color="#9CA3AF" />
+      </View>
       <Text
-        className="text-lg font-semibold text-gray-700 mt-4"
+        className="text-lg text-gray-900"
         style={{ fontFamily: 'Poppins-SemiBold' }}
       >
-        No Notifications
+        All Caught Up
       </Text>
       <Text
-        className="text-sm text-gray-500 text-center mt-2"
+        className="text-sm text-gray-400 text-center mt-2"
         style={{ fontFamily: 'Poppins-Regular' }}
       >
-        You're all caught up! New notifications will appear here.
+        New notifications will appear here
       </Text>
     </View>
   );
 
   if (loading) {
     return (
-      <View className="flex-1 bg-gray-50">
-        <View className="bg-white border-b border-gray-200 px-6 pt-12 pb-4">
+      <View className="flex-1 bg-white">
+        <View className="px-6 pt-14 pb-4">
           <Text
-            className="text-2xl font-bold text-gray-900"
+            className="text-2xl text-gray-900"
             style={{ fontFamily: 'Poppins-Bold' }}
           >
             Notifications
@@ -225,40 +220,15 @@ const NotificationsScreen = () => {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-white">
       {/* Header */}
-      <View className="bg-white border-b border-gray-200 px-6 pt-12 pb-4">
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center">
-            <Text
-              className="text-2xl font-bold text-gray-900"
-              style={{ fontFamily: 'Poppins-Bold' }}
-            >
-              Notifications
-            </Text>
-            {unreadCount > 0 && (
-              <View className="bg-red-500 rounded-full px-2 py-0.5 ml-2">
-                <Text
-                  className="text-xs text-white font-medium"
-                  style={{ fontFamily: 'Poppins-Medium' }}
-                >
-                  {unreadCount}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {unreadCount > 0 && (
-            <TouchableOpacity activeOpacity={0.7} onPress={handleMarkAllRead}>
-              <Text
-                className="text-sm text-blue-600"
-                style={{ fontFamily: 'Poppins-Medium' }}
-              >
-                Mark all read
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
+      <View className="px-6 pt-14 pb-4">
+        <Text
+          className="text-2xl text-gray-900"
+          style={{ fontFamily: 'Poppins-Bold' }}
+        >
+          Notifications
+        </Text>
       </View>
 
       {/* Notifications List */}
@@ -267,10 +237,17 @@ const NotificationsScreen = () => {
         renderItem={renderNotification}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
         }
         ListEmptyComponent={renderEmptyState}
-        contentContainerStyle={notifications.length === 0 ? { flex: 1 } : {}}
+        contentContainerStyle={notifications.length === 0 ? { flex: 1 } : { paddingBottom: 20 }}
+        showsVerticalScrollIndicator={false}
+        ItemSeparatorComponent={() => <View className="h-px bg-gray-100 mx-6" />}
       />
     </View>
   );

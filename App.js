@@ -2,6 +2,7 @@ import './global.css';
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Font from 'expo-font';
 import {
   useFonts,
@@ -11,6 +12,8 @@ import {
   Poppins_700Bold,
 } from '@expo-google-fonts/poppins';
 import { AuthProvider } from './src/context/AuthContext';
+import { SocketProvider } from './src/context/SocketContext';
+import { NotificationProvider } from './src/context/NotificationContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -30,9 +33,15 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <AppNavigator />
-      <StatusBar style="auto" />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <SocketProvider>
+          <NotificationProvider>
+            <AppNavigator />
+            <StatusBar style="auto" />
+          </NotificationProvider>
+        </SocketProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

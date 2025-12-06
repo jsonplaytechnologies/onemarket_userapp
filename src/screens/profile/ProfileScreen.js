@@ -4,14 +4,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS } from '../../constants/colors';
+import { LogoIcon } from '../../components/common/Logo';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
 
-  const firstName = user?.profile?.firstName || user?.firstName || '';
-  const lastName = user?.profile?.lastName || user?.lastName || '';
-  const avatarUrl = user?.profile?.avatar || user?.avatar;
+  const firstName = user?.profile?.first_name || user?.profile?.firstName || user?.firstName || '';
+  const lastName = user?.profile?.last_name || user?.profile?.lastName || user?.lastName || '';
+  const avatarUrl = user?.profile?.avatar_url || user?.profile?.avatarUrl || user?.avatar;
   const phone = user?.phone || '';
 
   const menuItems = [
@@ -19,45 +20,40 @@ const ProfileScreen = () => {
       id: 'addresses',
       icon: 'location-outline',
       label: 'My Addresses',
-      description: 'Manage delivery addresses',
       onPress: () => navigation.navigate('Addresses'),
     },
     {
       id: 'bookings',
       icon: 'calendar-outline',
       label: 'My Bookings',
-      description: 'View booking history',
       onPress: () => navigation.navigate('Bookings'),
     },
     {
       id: 'notifications',
       icon: 'notifications-outline',
       label: 'Notifications',
-      description: 'Manage notifications',
       onPress: () => navigation.navigate('Notifications'),
     },
     {
       id: 'help',
       icon: 'help-circle-outline',
       label: 'Help & Support',
-      description: 'Get help with your account',
       onPress: () => {},
     },
     {
       id: 'about',
       icon: 'information-circle-outline',
       label: 'About',
-      description: 'App version & info',
       onPress: () => {},
     },
   ];
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-white">
       {/* Header */}
-      <View className="bg-blue-600 px-6 pt-12 pb-8">
+      <View className="px-6 pt-14 pb-6">
         <Text
-          className="text-2xl font-bold text-white"
+          className="text-2xl text-gray-900"
           style={{ fontFamily: 'Poppins-Bold' }}
         >
           Profile
@@ -65,95 +61,100 @@ const ProfileScreen = () => {
       </View>
 
       {/* Profile Card */}
-      <View className="bg-white mx-6 -mt-4 rounded-xl p-4 border border-gray-200">
-        <View className="flex-row items-center">
+      <View className="mx-6 mb-6">
+        <TouchableOpacity
+          className="flex-row items-center bg-gray-50 rounded-2xl p-4"
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('EditProfile')}
+        >
           {/* Avatar */}
           {avatarUrl ? (
             <Image
               source={{ uri: avatarUrl }}
-              style={{ width: 64, height: 64, borderRadius: 32 }}
+              style={{ width: 56, height: 56, borderRadius: 28 }}
             />
           ) : (
-            <View className="w-16 h-16 bg-blue-50 rounded-full items-center justify-center">
-              <Ionicons name="person" size={32} color={COLORS.primary} />
+            <View className="w-14 h-14 bg-blue-100 rounded-full items-center justify-center">
+              <Text
+                className="text-xl text-primary"
+                style={{ fontFamily: 'Poppins-Bold' }}
+              >
+                {firstName.charAt(0).toUpperCase()}{lastName.charAt(0).toUpperCase()}
+              </Text>
             </View>
           )}
 
           {/* Info */}
           <View className="flex-1 ml-4">
             <Text
-              className="text-lg font-semibold text-gray-900"
+              className="text-lg text-gray-900"
               style={{ fontFamily: 'Poppins-SemiBold' }}
             >
               {firstName} {lastName}
             </Text>
             <Text
-              className="text-sm text-gray-500 mt-0.5"
+              className="text-sm text-gray-400 mt-0.5"
               style={{ fontFamily: 'Poppins-Regular' }}
             >
               {phone}
             </Text>
           </View>
 
-          {/* Edit Button */}
-          <TouchableOpacity
-            className="bg-blue-50 p-2 rounded-lg"
-            activeOpacity={0.7}
-          >
-            <Ionicons name="create-outline" size={20} color={COLORS.primary} />
-          </TouchableOpacity>
-        </View>
+          {/* Arrow */}
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
       </View>
 
       {/* Menu Items */}
-      <ScrollView className="flex-1 mt-4">
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-6">
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={item.id}
-              className={`flex-row items-center bg-white p-4 ${
-                index === 0 ? 'rounded-t-xl' : ''
-              } ${index === menuItems.length - 1 ? 'rounded-b-xl' : 'border-b border-gray-100'}`}
+              className="flex-row items-center py-4 border-b border-gray-100"
               activeOpacity={0.7}
               onPress={item.onPress}
             >
-              <View className="bg-gray-100 p-2 rounded-lg mr-4">
-                <Ionicons name={item.icon} size={22} color={COLORS.primary} />
+              <View className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center mr-4">
+                <Ionicons name={item.icon} size={20} color={COLORS.textPrimary} />
               </View>
-              <View className="flex-1">
-                <Text
-                  className="text-base font-medium text-gray-900"
-                  style={{ fontFamily: 'Poppins-Medium' }}
-                >
-                  {item.label}
-                </Text>
-                <Text
-                  className="text-xs text-gray-500"
-                  style={{ fontFamily: 'Poppins-Regular' }}
-                >
-                  {item.description}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+              <Text
+                className="flex-1 text-base text-gray-900"
+                style={{ fontFamily: 'Poppins-Medium' }}
+              >
+                {item.label}
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} />
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Logout Button */}
-        <View className="px-6 mt-6 mb-8">
+        <View className="px-6 mt-8 mb-8">
           <TouchableOpacity
-            className="flex-row items-center justify-center bg-red-50 py-4 rounded-xl"
+            className="flex-row items-center justify-center py-4 border border-gray-200 rounded-xl"
             activeOpacity={0.7}
             onPress={logout}
           >
-            <Ionicons name="log-out-outline" size={22} color={COLORS.error} />
+            <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
             <Text
-              className="text-base font-medium text-red-500 ml-2"
+              className="text-base text-red-500 ml-2"
               style={{ fontFamily: 'Poppins-Medium' }}
             >
               Logout
             </Text>
           </TouchableOpacity>
+        </View>
+
+        {/* App Version */}
+        <View className="items-center pb-8">
+          <LogoIcon size={32} />
+          <Text
+            className="text-xs text-gray-300 mt-2"
+            style={{ fontFamily: 'Poppins-Regular' }}
+          >
+            Version 1.0.0
+          </Text>
         </View>
       </ScrollView>
     </View>

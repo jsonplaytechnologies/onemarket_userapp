@@ -1,8 +1,13 @@
 import React from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
+import NotificationToast from '../components/common/NotificationToast';
+import { LogoIcon } from '../components/common/Logo';
 
 // Auth Screens
 import SplashScreen from '../screens/auth/SplashScreen';
@@ -14,6 +19,7 @@ import SignupScreen from '../screens/auth/SignupScreen';
 // Main Screens
 import HomeScreen from '../screens/home/HomeScreen';
 import BookingsScreen from '../screens/bookings/BookingsScreen';
+import ChatsScreen from '../screens/chats/ChatsScreen';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import CategoryServicesScreen from '../screens/services/CategoryServicesScreen';
@@ -22,6 +28,7 @@ import ProProfileScreen from '../screens/services/ProProfileScreen';
 import BusinessDetailsScreen from '../screens/businesses/BusinessDetailsScreen';
 import AddressesScreen from '../screens/profile/AddressesScreen';
 import AddAddressScreen from '../screens/profile/AddAddressScreen';
+import EditProfileScreen from '../screens/profile/EditProfileScreen';
 
 // Booking Flow Screens
 import CreateBookingScreen from '../screens/bookings/CreateBookingScreen';
@@ -32,6 +39,19 @@ import ReviewScreen from '../screens/bookings/ReviewScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+// Badge component for notification count
+const NotificationBadge = ({ count }) => {
+  if (!count || count <= 0) return null;
+
+  return (
+    <View style={styles.badge}>
+      <Text style={styles.badgeText}>
+        {count > 9 ? '9+' : count}
+      </Text>
+    </View>
+  );
+};
 
 // Auth Stack Navigator
 const AuthStack = () => {
@@ -48,18 +68,35 @@ const AuthStack = () => {
 
 // Main Bottom Tab Navigator
 const MainTabs = () => {
+  const { unreadCount, unreadChatsCount } = useNotifications();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color }) => {
           let iconName;
+          const size = 22;
 
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Bookings') {
             iconName = focused ? 'calendar' : 'calendar-outline';
+          } else if (route.name === 'Chats') {
+            iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
+            return (
+              <View>
+                <Ionicons name={iconName} size={size} color={color} />
+                <NotificationBadge count={unreadChatsCount} />
+              </View>
+            );
           } else if (route.name === 'Notifications') {
             iconName = focused ? 'notifications' : 'notifications-outline';
+            return (
+              <View>
+                <Ionicons name={iconName} size={size} color={color} />
+                <NotificationBadge count={unreadCount} />
+              </View>
+            );
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -67,16 +104,30 @@ const MainTabs = () => {
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#2563EB',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarInactiveTintColor: '#9CA3AF',
         tabBarLabelStyle: {
-          fontFamily: 'Poppins-Regular',
-          fontSize: 12,
+          fontFamily: 'Poppins-Medium',
+          fontSize: 11,
+          marginTop: -2,
+        },
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 0,
+          elevation: 0,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.04,
+          shadowRadius: 12,
+          height: Platform.OS === 'ios' ? 88 : 64,
+          paddingTop: 8,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
         },
         headerShown: false,
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Bookings" component={BookingsScreen} />
+      <Tab.Screen name="Chats" component={ChatsScreen} />
       <Tab.Screen name="Notifications" component={NotificationsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
@@ -100,6 +151,7 @@ const MainStack = () => {
       {/* Profile Screens */}
       <Stack.Screen name="Addresses" component={AddressesScreen} />
       <Stack.Screen name="AddAddress" component={AddAddressScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
 
       {/* Booking Flow Screens */}
       <Stack.Screen name="CreateBooking" component={CreateBookingScreen} />
@@ -113,14 +165,55 @@ const MainStack = () => {
 
 // Root Navigator
 const AppNavigator = () => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <LogoIcon size={64} />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Auth" component={AuthStack} />
-        <Stack.Screen name="Main" component={MainStack} />
+        {!isAuthenticated ? (
+          <Stack.Screen name="Auth" component={AuthStack} />
+        ) : (
+          <Stack.Screen name="Main" component={MainStack} />
+        )}
       </Stack.Navigator>
+      {/* Global notification toast */}
+      {isAuthenticated && <NotificationToast />}
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  badge: {
+    position: 'absolute',
+    right: -6,
+    top: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontFamily: 'Poppins-Bold',
+  },
+});
 
 export default AppNavigator;

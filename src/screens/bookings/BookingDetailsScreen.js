@@ -258,11 +258,12 @@ const BookingDetailsScreen = ({ route, navigation }) => {
   const canPay = booking?.status === 'quotation_sent';
   const canConfirmStart = booking?.status === 'job_start_requested';
   const canConfirmComplete = booking?.status === 'job_complete_requested';
-  const canReview = booking?.status === 'completed' && !booking?.hasReview;
+  const hasReview = booking?.has_review || booking?.hasReview;
+  const canReview = booking?.status === 'completed' && !hasReview;
   // Chat available after pro accepts and before completion
   const canChat = ['accepted', 'quotation_sent', 'paid', 'on_the_way', 'job_start_requested', 'job_started', 'job_complete_requested'].includes(booking?.status);
-  // Call only available AFTER payment is done
-  const canCall = ['paid', 'on_the_way', 'job_start_requested', 'job_started', 'job_complete_requested', 'completed'].includes(booking?.status);
+  // Call only available AFTER payment and BEFORE job completion
+  const canCall = ['paid', 'on_the_way', 'job_start_requested', 'job_started', 'job_complete_requested'].includes(booking?.status);
 
   if (loading) {
     return (
@@ -386,6 +387,52 @@ const BookingDetailsScreen = ({ route, navigation }) => {
               {canConfirmStart && 'Confirm job start'}
               {canConfirmComplete && 'Confirm job completion'}
             </Text>
+          </View>
+        )}
+
+        {/* Rejection Reason Banner */}
+        {booking?.status === 'rejected' && (
+          <View className="bg-red-50 px-6 py-4 flex-row items-start">
+            <Ionicons name="close-circle" size={20} color="#DC2626" style={{ marginTop: 2 }} />
+            <View className="ml-3 flex-1">
+              <Text
+                className="text-sm font-medium text-red-700"
+                style={{ fontFamily: 'Poppins-SemiBold' }}
+              >
+                Booking Rejected
+              </Text>
+              {(booking.rejection_reason || booking.rejectionReason) && (
+                <Text
+                  className="text-sm text-red-600 mt-1"
+                  style={{ fontFamily: 'Poppins-Regular' }}
+                >
+                  Reason: {booking.rejection_reason || booking.rejectionReason}
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Cancellation Reason Banner */}
+        {booking?.status === 'cancelled' && (
+          <View className="bg-gray-100 px-6 py-4 flex-row items-start">
+            <Ionicons name="ban" size={20} color="#6B7280" style={{ marginTop: 2 }} />
+            <View className="ml-3 flex-1">
+              <Text
+                className="text-sm font-medium text-gray-700"
+                style={{ fontFamily: 'Poppins-SemiBold' }}
+              >
+                Booking Cancelled
+              </Text>
+              {(booking.cancellation_reason || booking.cancellationReason) && (
+                <Text
+                  className="text-sm text-gray-600 mt-1"
+                  style={{ fontFamily: 'Poppins-Regular' }}
+                >
+                  Reason: {booking.cancellation_reason || booking.cancellationReason}
+                </Text>
+              )}
+            </View>
           </View>
         )}
 
@@ -638,6 +685,61 @@ const BookingDetailsScreen = ({ route, navigation }) => {
           </View>
         )}
 
+        {/* Your Review Section */}
+        {hasReview && (
+          <View className="bg-white px-6 py-4 mt-3 border-b border-gray-200">
+            <Text
+              className="text-sm font-medium text-gray-500 mb-3"
+              style={{ fontFamily: 'Poppins-Medium' }}
+            >
+              YOUR REVIEW
+            </Text>
+
+            {/* Star Rating */}
+            <View className="flex-row items-center mb-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Ionicons
+                  key={star}
+                  name={star <= (booking.review_rating || 0) ? 'star' : 'star-outline'}
+                  size={20}
+                  color="#F59E0B"
+                  style={{ marginRight: 2 }}
+                />
+              ))}
+              <Text
+                className="text-sm text-gray-600 ml-2"
+                style={{ fontFamily: 'Poppins-Medium' }}
+              >
+                {booking.review_rating}/5
+              </Text>
+            </View>
+
+            {/* Review Comment */}
+            {booking.review_comment && (
+              <Text
+                className="text-base text-gray-700"
+                style={{ fontFamily: 'Poppins-Regular' }}
+              >
+                "{booking.review_comment}"
+              </Text>
+            )}
+
+            {/* Review Date */}
+            {booking.review_created_at && (
+              <Text
+                className="text-xs text-gray-400 mt-2"
+                style={{ fontFamily: 'Poppins-Regular' }}
+              >
+                Reviewed on {new Date(booking.review_created_at).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </Text>
+            )}
+          </View>
+        )}
+
         {/* Timeline Section */}
         <View className="bg-white px-6 py-4 mt-3 border-b border-gray-200">
           <Text
@@ -792,14 +894,26 @@ const BookingDetailsScreen = ({ route, navigation }) => {
             {/* No bottom action needed - show nothing when no primary actions */}
             {!canCancel && !canPay && !canConfirmStart && !canConfirmComplete && !canReview && (
               <View className="items-center py-2">
-                <Text
-                  className="text-gray-400 text-sm"
-                  style={{ fontFamily: 'Poppins-Regular' }}
-                >
-                  {booking?.status === 'pending' && 'Waiting for provider response...'}
-                  {booking?.status === 'completed' && 'Booking completed'}
-                  {['paid', 'on_the_way', 'job_started'].includes(booking?.status) && 'Job in progress'}
-                </Text>
+                {booking?.status === 'completed' && hasReview ? (
+                  <View className="flex-row items-center">
+                    <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                    <Text
+                      className="text-green-600 text-sm ml-2"
+                      style={{ fontFamily: 'Poppins-Medium' }}
+                    >
+                      Completed & Reviewed
+                    </Text>
+                  </View>
+                ) : (
+                  <Text
+                    className="text-gray-400 text-sm"
+                    style={{ fontFamily: 'Poppins-Regular' }}
+                  >
+                    {booking?.status === 'pending' && 'Waiting for provider response...'}
+                    {booking?.status === 'completed' && 'Booking completed'}
+                    {['paid', 'on_the_way', 'job_started'].includes(booking?.status) && 'Job in progress'}
+                  </Text>
+                )}
               </View>
             )}
           </>
