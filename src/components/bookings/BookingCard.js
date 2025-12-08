@@ -21,6 +21,9 @@ const BookingCard = ({ booking, onPress }) => {
     pro_first_name,
     pro_last_name,
     pro_avatar,
+    // Review status
+    has_review,
+    hasReview,
   } = booking;
 
   const displayBookingNumber = bookingNumber || booking_number;
@@ -53,6 +56,10 @@ const BookingCard = ({ booking, onPress }) => {
     'job_start_requested',
     'job_complete_requested',
   ].includes(status);
+
+  // Check if completed but not reviewed
+  const isReviewed = has_review || hasReview;
+  const needsReview = status === 'completed' && !isReviewed;
 
   return (
     <TouchableOpacity
@@ -139,6 +146,19 @@ const BookingCard = ({ booking, onPress }) => {
             style={{ fontFamily: 'Poppins-Medium' }}
           >
             Action Required
+          </Text>
+        </View>
+      )}
+
+      {/* Review Reminder */}
+      {needsReview && (
+        <View className="flex-row items-center justify-center mt-3 pt-3 border-t border-gray-100 bg-amber-50 -mx-4 -mb-4 px-4 py-3 rounded-b-2xl">
+          <Ionicons name="star-outline" size={14} color="#F59E0B" />
+          <Text
+            className="text-xs text-amber-600 ml-1.5"
+            style={{ fontFamily: 'Poppins-Medium' }}
+          >
+            Rate your experience with {proFirstName || 'the provider'}
           </Text>
         </View>
       )}

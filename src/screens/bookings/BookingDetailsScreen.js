@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import apiService from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
@@ -20,6 +21,7 @@ import { useBookingSocket } from '../../hooks/useSocket';
 
 const BookingDetailsScreen = ({ route, navigation }) => {
   const { bookingId } = route.params;
+  const insets = useSafeAreaInsets();
 
   const [booking, setBooking] = useState(null);
   const [history, setHistory] = useState([]);
@@ -806,7 +808,10 @@ const BookingDetailsScreen = ({ route, navigation }) => {
       </ScrollView>
 
       {/* Bottom Actions */}
-      <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4">
+      <View
+        className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 pt-4"
+        style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+      >
         {actionLoading ? (
           <ActivityIndicator size="small" color={COLORS.primary} />
         ) : (
