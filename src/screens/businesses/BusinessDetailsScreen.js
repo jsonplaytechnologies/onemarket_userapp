@@ -8,16 +8,24 @@ import {
   Image,
   Linking,
   Alert,
+  Modal,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import apiService from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
 
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
 const BusinessDetailsScreen = ({ route, navigation }) => {
   const { businessId } = route.params;
+  const insets = useSafeAreaInsets();
   const [business, setBusiness] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     fetchBusinessDetails();
@@ -560,7 +568,7 @@ const BusinessDetailsScreen = ({ route, navigation }) => {
                 className="text-base font-semibold text-gray-900 ml-2"
                 style={{ fontFamily: 'Poppins-SemiBold' }}
               >
-                Photos
+                Photos ({images.length})
               </Text>
             </View>
 
@@ -568,17 +576,25 @@ const BusinessDetailsScreen = ({ route, navigation }) => {
               {images.map((image, index) => {
                 const imageUrl = typeof image === 'string' ? image : image.url || image.imageUrl;
                 return (
-                  <Image
+                  <TouchableOpacity
                     key={index}
-                    source={{ uri: imageUrl }}
-                    style={{
-                      width: 140,
-                      height: 140,
-                      borderRadius: 8,
-                      marginRight: 8,
+                    activeOpacity={0.9}
+                    onPress={() => {
+                      setSelectedImageIndex(index);
+                      setImageViewerVisible(true);
                     }}
-                    resizeMode="cover"
-                  />
+                  >
+                    <Image
+                      source={{ uri: imageUrl }}
+                      style={{
+                        width: 140,
+                        height: 140,
+                        borderRadius: 8,
+                        marginRight: 8,
+                      }}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
                 );
               })}
             </ScrollView>
@@ -588,6 +604,119 @@ const BusinessDetailsScreen = ({ route, navigation }) => {
         {/* Bottom spacing */}
         <View style={{ height: 20 }} />
       </ScrollView>
+
+      {/* Full Screen Image Viewer Modal */}
+      <Modal
+        visible={imageViewerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setImageViewerVisible(false)}
+      >
+        <View className="flex-1 bg-black">
+          {/* Header */}
+          <View
+            className="absolute top-0 left-0 right-0 z-10 flex-row items-center justify-between px-4"
+            style={{ paddingTop: insets.top + 8 }}
+          >
+            <TouchableOpacity
+              className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
+              onPress={() => setImageViewerVisible(false)}
+            >
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text
+              className="text-white text-base"
+              style={{ fontFamily: 'Poppins-Medium' }}
+            >
+              {selectedImageIndex + 1} / {images.length}
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {/* Image */}
+          <View className="flex-1 items-center justify-center">
+            {images.length > 0 && (
+              <Image
+                source={{
+                  uri:
+                    typeof images[selectedImageIndex] === 'string'
+                      ? images[selectedImageIndex]
+                      : images[selectedImageIndex]?.url || images[selectedImageIndex]?.imageUrl,
+                }}
+                style={{ width: screenWidth, height: screenHeight * 0.7 }}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+
+          {/* Navigation Arrows */}
+          {images.length > 1 && (
+            <>
+              {/* Previous Button */}
+              {selectedImageIndex > 0 && (
+                <TouchableOpacity
+                  className="absolute left-4 top-1/2 -mt-6 w-12 h-12 bg-black/50 rounded-full items-center justify-center"
+                  onPress={() => setSelectedImageIndex(selectedImageIndex - 1)}
+                >
+                  <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
+                </TouchableOpacity>
+              )}
+
+              {/* Next Button */}
+              {selectedImageIndex < images.length - 1 && (
+                <TouchableOpacity
+                  className="absolute right-4 top-1/2 -mt-6 w-12 h-12 bg-black/50 rounded-full items-center justify-center"
+                  onPress={() => setSelectedImageIndex(selectedImageIndex + 1)}
+                >
+                  <Ionicons name="chevron-forward" size={28} color="#FFFFFF" />
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+
+          {/* Thumbnail Strip */}
+          {images.length > 1 && (
+            <View
+              className="absolute bottom-0 left-0 right-0 bg-black/50"
+              style={{ paddingBottom: insets.bottom + 8, paddingTop: 8 }}
+            >
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16 }}
+              >
+                {images.map((image, index) => {
+                  const imageUrl = typeof image === 'string' ? image : image.url || image.imageUrl;
+                  const isSelected = index === selectedImageIndex;
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => setSelectedImageIndex(index)}
+                      style={{
+                        marginRight: 8,
+                        borderWidth: isSelected ? 2 : 0,
+                        borderColor: '#FFFFFF',
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Image
+                        source={{ uri: imageUrl }}
+                        style={{
+                          width: 60,
+                          height: 60,
+                          borderRadius: 4,
+                          opacity: isSelected ? 1 : 0.5,
+                        }}
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 };
