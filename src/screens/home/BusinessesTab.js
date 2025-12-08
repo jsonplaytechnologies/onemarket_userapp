@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import apiService from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
-import { getBusinessImage, STOCK_IMAGES } from '../../constants/images';
+import { STOCK_IMAGES } from '../../constants/images';
 
 const { width } = Dimensions.get('window');
 
@@ -25,8 +25,10 @@ const BusinessesTab = () => {
   const [businesses, setBusinesses] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const searchTimeoutRef = useRef(null);
 
   useEffect(() => {
     fetchData();
@@ -35,6 +37,29 @@ const BusinessesTab = () => {
   useEffect(() => {
     fetchBusinesses();
   }, [selectedCategory]);
+
+  // Debounced backend search
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (searchQuery.trim().length >= 2) {
+      setSearching(true);
+      searchTimeoutRef.current = setTimeout(() => {
+        fetchBusinesses(searchQuery.trim());
+      }, 300);
+    } else if (searchQuery.trim().length === 0) {
+      // Refetch without search when cleared
+      fetchBusinesses();
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   const fetchData = async () => {
     try {
@@ -53,12 +78,21 @@ const BusinessesTab = () => {
     }
   };
 
-  const fetchBusinesses = async () => {
+  const fetchBusinesses = async (search = '') => {
     try {
-      const endpoint =
-        selectedCategory === 'all'
-          ? API_ENDPOINTS.BUSINESSES
-          : `${API_ENDPOINTS.BUSINESSES}?categoryId=${selectedCategory}`;
+      // Build query params
+      const params = new URLSearchParams();
+      if (selectedCategory !== 'all') {
+        params.append('categoryId', selectedCategory);
+      }
+      if (search) {
+        params.append('search', search);
+      }
+
+      const queryString = params.toString();
+      const endpoint = queryString
+        ? `${API_ENDPOINTS.BUSINESSES}?${queryString}`
+        : API_ENDPOINTS.BUSINESSES;
 
       const response = await apiService.get(endpoint);
       const businessesData = response.data?.businesses ||
@@ -67,12 +101,17 @@ const BusinessesTab = () => {
     } catch (error) {
       console.error('Error fetching businesses:', error);
       setBusinesses([]);
+    } finally {
+      setSearching(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchData();
+    if (searchQuery.trim().length >= 2) {
+      await fetchBusinesses(searchQuery.trim());
+    }
     setRefreshing(false);
   };
 
@@ -112,11 +151,7 @@ const BusinessesTab = () => {
     }
   };
 
-  const filteredBusinesses = businesses.filter((business) => {
-    if (!searchQuery.trim()) return true;
-    const name = (business.businessName || business.name || '').toLowerCase();
-    return name.includes(searchQuery.toLowerCase());
-  });
+  const isSearching = searchQuery.trim().length >= 2;
 
   if (loading) {
     return (
@@ -243,10 +278,23 @@ const BusinessesTab = () => {
           className="text-base text-gray-900 mb-4"
           style={{ fontFamily: 'Poppins-SemiBold' }}
         >
-          {searchQuery ? 'Search Results' : 'Popular Places'}
+          {isSearching ? 'Search Results' : 'Popular Places'}
         </Text>
 
-        {filteredBusinesses.length === 0 ? (
+        {/* Searching indicator */}
+        {searching && (
+          <View className="items-center justify-center py-12">
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text
+              className="text-gray-500 mt-2"
+              style={{ fontFamily: 'Poppins-Regular' }}
+            >
+              Searching...
+            </Text>
+          </View>
+        )}
+
+        {!searching && businesses.length === 0 ? (
           <View className="items-center justify-center py-12">
             <View className="w-16 h-16 bg-gray-200 rounded-full items-center justify-center mb-4">
               <Ionicons name="business-outline" size={28} color="#9CA3AF" />
@@ -255,17 +303,21 @@ const BusinessesTab = () => {
               className="text-gray-500"
               style={{ fontFamily: 'Poppins-Medium' }}
             >
-              {searchQuery ? 'No businesses found' : 'No businesses available'}
+              {isSearching ? 'No businesses found' : 'No businesses available'}
             </Text>
           </View>
-        ) : (
-          filteredBusinesses.map((business) => {
+        ) : !searching && (
+          businesses.map((business) => {
             const isOpen = isBusinessOpen(business);
-            const name = business.businessName || business.name;
+            const name = business.businessName || business.business_name || business.name;
             const categoryName = business.category?.name || business.categoryName || 'Business';
             const zoneName = business.zone?.name || business.zoneName;
             const logoUrl = business.logoUrl || business.logo_url;
-            const coverUrl = business.coverUrl || business.cover_url || getBusinessImage(categoryName);
+            // Prioritize business's own cover photo
+            const coverUrl = business.coverImageUrl || business.cover_image_url ||
+                            business.coverUrl || business.cover_url ||
+                            business.coverImage || business.cover_image ||
+                            business.images?.[0] || null;
             const rating = parseFloat(business.average_rating || business.rating || 0);
             const reviewCount = business.total_reviews || business.reviewCount || 0;
 
@@ -289,11 +341,26 @@ const BusinessesTab = () => {
               >
                 {/* Cover Image */}
                 <View className="relative">
-                  <Image
-                    source={{ uri: coverUrl }}
-                    style={{ width: '100%', height: 130 }}
-                    resizeMode="cover"
-                  />
+                  {coverUrl ? (
+                    <Image
+                      source={{ uri: coverUrl }}
+                      style={{ width: '100%', height: 130 }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View
+                      className="bg-gray-200 items-center justify-center"
+                      style={{ width: '100%', height: 130 }}
+                    >
+                      <Ionicons name="business-outline" size={40} color="#9CA3AF" />
+                      <Text
+                        className="text-gray-400 text-xs mt-1"
+                        style={{ fontFamily: 'Poppins-Regular' }}
+                      >
+                        No cover photo
+                      </Text>
+                    </View>
+                  )}
 
                   {/* Status Badge */}
                   <View

@@ -11,12 +11,14 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import apiService from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
 
 const CreateBookingScreen = ({ route, navigation }) => {
   const { proId, proName, serviceName, services = [] } = route.params;
+  const insets = useSafeAreaInsets();
 
   const [selectedService, setSelectedService] = useState(null);
   const [addresses, setAddresses] = useState([]);
@@ -514,7 +516,10 @@ const CreateBookingScreen = ({ route, navigation }) => {
       </ScrollView>
 
       {/* Submit Button */}
-      <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4">
+      <View
+        className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 pt-4"
+        style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+      >
         <TouchableOpacity
           className={`py-4 rounded-xl items-center ${
             selectedService && selectedAddress && !submitting

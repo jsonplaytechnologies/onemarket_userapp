@@ -14,15 +14,53 @@ import apiService from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
 import { getRandomProAvatar, STOCK_IMAGES } from '../../constants/images';
+import { useAuth } from '../../context/AuthContext';
 
 const { width } = Dimensions.get('window');
+const DEFAULT_MAX_DISTANCE = 50; // km
 
 const FindProsScreen = ({ route, navigation }) => {
   const { serviceId, serviceName } = route.params;
+  const { user } = useAuth();
   const [pros, setPros] = useState([]);
   const [filteredPros, setFilteredPros] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // Get user's primary address coordinates
+  const getUserLocation = () => {
+    if (!user) return null;
+
+    // Check for primary address
+    const primaryAddress = user.primaryAddress || user.primary_address;
+    if (primaryAddress?.latitude && primaryAddress?.longitude) {
+      return {
+        lat: primaryAddress.latitude,
+        lng: primaryAddress.longitude,
+      };
+    }
+
+    // Check addresses array
+    const addresses = user.addresses || [];
+    const primary = addresses.find(addr => addr.is_primary || addr.isPrimary);
+    if (primary?.latitude && primary?.longitude) {
+      return {
+        lat: primary.latitude,
+        lng: primary.longitude,
+      };
+    }
+
+    // Use first address with coordinates
+    const withCoords = addresses.find(addr => addr.latitude && addr.longitude);
+    if (withCoords) {
+      return {
+        lat: withCoords.latitude,
+        lng: withCoords.longitude,
+      };
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     fetchPros();
@@ -45,7 +83,19 @@ const FindProsScreen = ({ route, navigation }) => {
   const fetchPros = async () => {
     try {
       setLoading(true);
-      const response = await apiService.get(`${API_ENDPOINTS.SEARCH_PROS}?serviceId=${serviceId}`);
+
+      // Build query params with location
+      const params = new URLSearchParams();
+      params.append('serviceId', serviceId);
+
+      const location = getUserLocation();
+      if (location) {
+        params.append('lat', location.lat);
+        params.append('lng', location.lng);
+        params.append('maxDistance', DEFAULT_MAX_DISTANCE);
+      }
+
+      const response = await apiService.get(`${API_ENDPOINTS.SEARCH_PROS}?${params.toString()}`);
       const prosData = Array.isArray(response.data) ? response.data : [];
       setPros(prosData);
       setFilteredPros(prosData);
@@ -251,6 +301,19 @@ const FindProsScreen = ({ route, navigation }) => {
                           </>
                         )}
                       </View>
+
+                      {/* Distance - shown when location-based search is used */}
+                      {pro.distance !== undefined && pro.distance !== null && (
+                        <View className="flex-row items-center mt-1">
+                          <Ionicons name="location-outline" size={12} color={COLORS.primary} />
+                          <Text
+                            className="text-xs text-primary ml-1"
+                            style={{ fontFamily: 'Poppins-Medium' }}
+                          >
+                            {parseFloat(pro.distance).toFixed(1)} km away
+                          </Text>
+                        </View>
+                      )}
 
                       {/* Bio */}
                       {pro.bio && (

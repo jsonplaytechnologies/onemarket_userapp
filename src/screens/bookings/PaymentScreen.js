@@ -10,6 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import apiService from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
@@ -27,6 +28,7 @@ const PAYMENT_STATUS = {
 const PaymentScreen = ({ route, navigation }) => {
   const { bookingId, booking } = route.params;
   const { user } = useContext(AuthContext);
+  const insets = useSafeAreaInsets();
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [paymentStatus, setPaymentStatus] = useState(PAYMENT_STATUS.IDLE);
@@ -508,7 +510,11 @@ const PaymentScreen = ({ route, navigation }) => {
         </View>
       </View>
 
-      <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        className="flex-1"
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
+      >
         {renderContent()}
       </ScrollView>
     </View>

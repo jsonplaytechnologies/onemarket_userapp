@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import NotificationToast from '../components/common/NotificationToast';
@@ -69,6 +70,11 @@ const AuthStack = () => {
 // Main Bottom Tab Navigator
 const MainTabs = () => {
   const { unreadCount, unreadChatsCount } = useNotifications();
+  const insets = useSafeAreaInsets();
+
+  // Calculate bottom padding based on safe area insets
+  const bottomPadding = Platform.OS === 'ios' ? 28 : Math.max(insets.bottom, 8);
+  const tabBarHeight = Platform.OS === 'ios' ? 88 : 56 + bottomPadding;
 
   return (
     <Tab.Navigator
@@ -118,9 +124,9 @@ const MainTabs = () => {
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.04,
           shadowRadius: 12,
-          height: Platform.OS === 'ios' ? 88 : 64,
+          height: tabBarHeight,
           paddingTop: 8,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          paddingBottom: bottomPadding,
         },
         headerShown: false,
       })}

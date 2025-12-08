@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,24 +18,61 @@ import { getServiceImage } from '../../constants/images';
 const CategoryServicesScreen = ({ route, navigation }) => {
   const { categoryId, categoryName } = route.params;
   const [services, setServices] = useState([]);
-  const [filteredServices, setFilteredServices] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
+  const searchTimeoutRef = useRef(null);
 
   useEffect(() => {
     fetchServices();
   }, [categoryId]);
 
+  // Debounced backend search
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredServices(services);
-    } else {
-      const filtered = services.filter((service) =>
-        service.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredServices(filtered);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-  }, [searchQuery, services]);
+
+    if (searchQuery.trim().length >= 2) {
+      setSearching(true);
+      searchTimeoutRef.current = setTimeout(() => {
+        searchServices(searchQuery.trim());
+      }, 300);
+    } else {
+      setSearchResults([]);
+      setSearching(false);
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  const searchServices = async (query) => {
+    try {
+      const response = await apiService.get(`${API_ENDPOINTS.SEARCH_SERVICES}?q=${encodeURIComponent(query)}`);
+      const allResults = Array.isArray(response.data) ? response.data : [];
+      // Filter to only show services from this category
+      const categoryResults = allResults.filter(
+        service => service.category_id === categoryId ||
+                   service.category_name?.toLowerCase() === categoryName.toLowerCase()
+      );
+      setSearchResults(categoryResults.map(service => ({
+        ...service,
+        basePrice: service.base_price || service.basePrice,
+        iconUrl: service.icon_url || service.iconUrl,
+        estimatedDuration: service.estimated_duration || service.estimatedDuration,
+      })));
+    } catch (error) {
+      console.error('Error searching services:', error);
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
 
   const fetchServices = async () => {
     try {
@@ -50,15 +87,16 @@ const CategoryServicesScreen = ({ route, navigation }) => {
         estimatedDuration: service.estimated_duration || service.estimatedDuration,
       }));
       setServices(mappedServices);
-      setFilteredServices(mappedServices);
     } catch (error) {
       console.error('Error fetching services:', error);
       setServices([]);
-      setFilteredServices([]);
     } finally {
       setLoading(false);
     }
   };
+
+  const isSearching = searchQuery.trim().length >= 2;
+  const displayedServices = isSearching ? searchResults : services;
 
   const categoryImage = getServiceImage(categoryName);
 
@@ -96,7 +134,7 @@ const CategoryServicesScreen = ({ route, navigation }) => {
                 className="text-white/70 text-sm"
                 style={{ fontFamily: 'Poppins-Regular' }}
               >
-                {filteredServices.length} services available
+                {displayedServices.length} services available
               </Text>
             </View>
           </View>
@@ -145,7 +183,20 @@ const CategoryServicesScreen = ({ route, navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 }}
       >
-        {filteredServices.length === 0 ? (
+        {/* Searching indicator */}
+        {searching && (
+          <View className="items-center justify-center py-12">
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text
+              className="text-gray-500 mt-2"
+              style={{ fontFamily: 'Poppins-Regular' }}
+            >
+              Searching...
+            </Text>
+          </View>
+        )}
+
+        {!searching && displayedServices.length === 0 ? (
           <View className="items-center justify-center py-20">
             <View className="w-20 h-20 bg-gray-100 rounded-full items-center justify-center mb-4">
               <Ionicons name="search-outline" size={36} color="#9CA3AF" />
@@ -160,11 +211,11 @@ const CategoryServicesScreen = ({ route, navigation }) => {
               className="text-sm text-gray-400 text-center mt-2"
               style={{ fontFamily: 'Poppins-Regular' }}
             >
-              {searchQuery ? 'Try a different search' : 'Check back later'}
+              {isSearching ? 'Try a different search' : 'Check back later'}
             </Text>
           </View>
-        ) : (
-          filteredServices.map((service) => (
+        ) : !searching && (
+          displayedServices.map((service) => (
             <TouchableOpacity
               key={service.id}
               className="mb-3 rounded-2xl overflow-hidden bg-white border border-gray-100"

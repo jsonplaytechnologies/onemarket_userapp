@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ServicesTab from './ServicesTab';
 import BusinessesTab from './BusinessesTab';
@@ -20,11 +20,7 @@ const HomeScreen = () => {
   const { unreadCount } = useNotifications();
   const [primaryAddress, setPrimaryAddress] = useState(null);
 
-  useEffect(() => {
-    fetchAddresses();
-  }, []);
-
-  const fetchAddresses = async () => {
+  const fetchAddresses = useCallback(async () => {
     try {
       const response = await apiService.get(API_ENDPOINTS.USER_ADDRESSES);
       if (response.success && response.data) {
@@ -36,7 +32,14 @@ const HomeScreen = () => {
     } catch (error) {
       console.error('Error fetching addresses:', error);
     }
-  };
+  }, []);
+
+  // Refetch addresses when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchAddresses();
+    }, [fetchAddresses])
+  );
 
   const getAddressText = () => {
     if (!primaryAddress) return 'Add your address';
@@ -73,13 +76,13 @@ const HomeScreen = () => {
               <View className="flex-row items-center">
                 <Ionicons name="location" size={12} color={COLORS.primary} />
                 <Text
-                  className="text-xs text-gray-500 ml-1 flex-1"
-                  style={{ fontFamily: 'Poppins-Regular' }}
+                  className="text-xs text-gray-500 ml-1"
+                  style={{ fontFamily: 'Poppins-Regular', flexShrink: 1 }}
                   numberOfLines={1}
                 >
                   {getAddressText()}
                 </Text>
-                <Ionicons name="chevron-down" size={12} color="#9CA3AF" />
+                <Ionicons name="chevron-down" size={12} color="#9CA3AF" style={{ marginLeft: 4 }} />
               </View>
             </View>
           </TouchableOpacity>

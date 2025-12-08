@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import apiService from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
@@ -19,6 +20,7 @@ const { width } = Dimensions.get('window');
 
 const ProProfileScreen = ({ route, navigation }) => {
   const { proId, serviceName } = route.params;
+  const insets = useSafeAreaInsets();
   const [pro, setPro] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -425,8 +427,9 @@ const ProProfileScreen = ({ route, navigation }) => {
 
       {/* Bottom Action Bar */}
       <View
-        className="absolute bottom-0 left-0 right-0 bg-white px-4 py-4"
+        className="absolute bottom-0 left-0 right-0 bg-white px-4 pt-4"
         style={{
+          paddingBottom: Math.max(insets.bottom, 16),
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.05,

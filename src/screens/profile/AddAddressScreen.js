@@ -11,12 +11,14 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import apiService from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
 
 const AddAddressScreen = ({ route, navigation }) => {
   const { address, isEdit } = route.params || {};
+  const insets = useSafeAreaInsets();
 
   const [label, setLabel] = useState(address?.label || '');
   const [addressLine, setAddressLine] = useState(address?.addressLine || address?.address_line || '');
@@ -143,7 +145,11 @@ const AddAddressScreen = ({ route, navigation }) => {
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       ) : (
-        <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
+        <ScrollView
+          className="flex-1"
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        >
           <View className="px-6 py-4">
             {/* Label Selection */}
             <View className="mb-4">

@@ -13,6 +13,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import apiService from '../../services/api';
 import { API_ENDPOINTS, API_BASE_URL } from '../../constants/api';
@@ -25,6 +26,7 @@ const { width: screenWidth } = Dimensions.get('window');
 const ChatScreen = ({ route, navigation }) => {
   const { bookingId, booking } = route.params;
   const { user, token } = useContext(AuthContext);
+  const insets = useSafeAreaInsets();
 
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -546,7 +548,10 @@ const ChatScreen = ({ route, navigation }) => {
       )}
 
       {/* Input Area */}
-      <View className="bg-white border-t border-gray-200 px-4 py-3 flex-row items-end">
+      <View
+        className="bg-white border-t border-gray-200 px-4 pt-3 flex-row items-end"
+        style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+      >
         {/* Image Picker Buttons */}
         <TouchableOpacity
           className="w-10 h-10 items-center justify-center"
