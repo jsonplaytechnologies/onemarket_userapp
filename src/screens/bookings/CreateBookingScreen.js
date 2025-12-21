@@ -2,17 +2,16 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import apiService from '../../services/api';
+import apiService, { ApiError } from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
 
@@ -123,7 +122,21 @@ const CreateBookingScreen = ({ route, navigation }) => {
       }
     } catch (error) {
       console.error('Error creating booking:', error);
-      Alert.alert('Error', error.message || 'Failed to create booking');
+
+      if (error.code === 'RATE_LIMITED') {
+        Alert.alert(
+          'Please Wait',
+          `Too many booking requests. Try again in ${error.retryAfter} seconds.`
+        );
+      } else if (error.code === 'VALIDATION_ERROR') {
+        // Display validation errors
+        const errorMsg = error.errors && error.errors.length > 0
+          ? error.errors.map(e => `${e.path || 'Field'}: ${e.msg}`).join('\n')
+          : error.message;
+        Alert.alert('Validation Error', errorMsg);
+      } else {
+        Alert.alert('Error', error.message || 'Failed to create booking');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -171,10 +184,7 @@ const CreateBookingScreen = ({ route, navigation }) => {
   }
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-gray-50"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <View className="flex-1 bg-gray-50">
       {/* Header */}
       <View className="bg-white border-b border-gray-200 px-6 pt-12 pb-4 flex-row items-center">
         <TouchableOpacity
@@ -200,7 +210,15 @@ const CreateBookingScreen = ({ route, navigation }) => {
         </View>
       </View>
 
-      <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        extraScrollHeight={100}
+        enableOnAndroid={true}
+        enableAutomaticScroll={Platform.OS === 'ios'}
+      >
         {/* Service Selection */}
         <View className="bg-white px-6 py-4 mt-3 border-b border-gray-200">
           <Text
@@ -511,9 +529,7 @@ const CreateBookingScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Spacer */}
-        <View style={{ height: 100 }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Submit Button */}
       <View
@@ -542,7 +558,7 @@ const CreateBookingScreen = ({ route, navigation }) => {
           )}
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 

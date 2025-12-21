@@ -46,10 +46,16 @@ const BusinessDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleCall = () => {
+  const handleWhatsApp = () => {
     const phone = business?.phone;
     if (phone) {
-      Linking.openURL(`tel:${phone}`);
+      // Remove any non-numeric characters and ensure it starts with country code
+      let cleanPhone = phone.replace(/\D/g, '');
+      // If phone doesn't start with country code, assume it's a local number
+      if (!cleanPhone.startsWith('237') && cleanPhone.length <= 9) {
+        cleanPhone = '237' + cleanPhone;
+      }
+      Linking.openURL(`https://wa.me/${cleanPhone}`);
     }
   };
 
@@ -337,14 +343,15 @@ const BusinessDetailsScreen = ({ route, navigation }) => {
         <View className="flex-row mx-6 mt-4">
           <TouchableOpacity
             className={`flex-1 border rounded-xl p-4 items-center mr-2 ${
-              business.phone ? 'bg-blue-600 border-blue-600' : 'bg-gray-100 border-gray-200'
+              business.phone ? 'border-green-500' : 'bg-gray-100 border-gray-200'
             }`}
+            style={business.phone ? { backgroundColor: '#25D366' } : {}}
             activeOpacity={0.7}
-            onPress={handleCall}
+            onPress={handleWhatsApp}
             disabled={!business.phone}
           >
             <Ionicons
-              name="call"
+              name="logo-whatsapp"
               size={24}
               color={business.phone ? '#fff' : COLORS.textSecondary}
             />
@@ -352,7 +359,7 @@ const BusinessDetailsScreen = ({ route, navigation }) => {
               className={`text-xs mt-1 ${business.phone ? 'text-white' : 'text-gray-500'}`}
               style={{ fontFamily: 'Poppins-Medium' }}
             >
-              Call
+              WhatsApp
             </Text>
           </TouchableOpacity>
 
@@ -456,7 +463,7 @@ const BusinessDetailsScreen = ({ route, navigation }) => {
           {business.phone && (
             <TouchableOpacity
               className="flex-row items-center py-2"
-              onPress={handleCall}
+              onPress={() => Linking.openURL(`tel:${business.phone}`)}
               activeOpacity={0.7}
             >
               <Ionicons name="call-outline" size={18} color={COLORS.textSecondary} />

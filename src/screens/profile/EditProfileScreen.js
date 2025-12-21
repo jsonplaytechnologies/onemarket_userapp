@@ -135,6 +135,7 @@ const EditProfileScreen = () => {
     <KeyboardAvoidingView
       className="flex-1 bg-gray-50"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
     >
       {/* Header */}
       <View className="bg-white border-b border-gray-200 px-4 pt-12 pb-4">
@@ -172,7 +173,12 @@ const EditProfileScreen = () => {
         </View>
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
         {/* Avatar Section */}
         <View className="items-center py-8 bg-white mb-4">
           <TouchableOpacity onPress={showImageOptions} activeOpacity={0.8}>

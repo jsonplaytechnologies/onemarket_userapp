@@ -1,6 +1,6 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import apiService from '../services/api';
+import api from '../services/api';
 import { API_ENDPOINTS } from '../constants/api';
 
 export const AuthContext = createContext();
@@ -10,9 +10,15 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const navigationRef = useRef(null);
 
   useEffect(() => {
     checkAuthStatus();
+
+    // Set up callback for when authentication expires
+    api.setOnAuthExpired(() => {
+      handleAuthExpired();
+    });
   }, []);
 
   const checkAuthStatus = async () => {
@@ -39,7 +45,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async (authToken) => {
     try {
-      const response = await apiService.get(API_ENDPOINTS.ME);
+      const response = await api.get(API_ENDPOINTS.ME);
       if (response.success) {
         setUser(response.data);
         await AsyncStorage.setItem('user', JSON.stringify(response.data));
@@ -49,9 +55,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (tokenValue, userData) => {
+  const handleAuthExpired = async () => {
+    // Clear all authentication state
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    console.log('Authentication expired - user will be redirected to login');
+  };
+
+  const login = async (tokenValue, refreshTokenValue, userData) => {
     try {
-      await AsyncStorage.setItem('token', tokenValue);
+      // Store both tokens using the api service
+      await api.storeTokens(tokenValue, refreshTokenValue);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
       setToken(tokenValue);
       setUser(userData);
@@ -64,8 +79,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
+      // Clear tokens using api service which clears both token and refreshToken
+      await api.clearTokens();
       setToken(null);
       setUser(null);
       setIsAuthenticated(false);

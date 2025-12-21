@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -11,7 +11,6 @@ import NotificationToast from '../components/common/NotificationToast';
 import { LogoIcon } from '../components/common/Logo';
 
 // Auth Screens
-import SplashScreen from '../screens/auth/SplashScreen';
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import PhoneInputScreen from '../screens/auth/PhoneInputScreen';
 import OTPVerificationScreen from '../screens/auth/OTPVerificationScreen';
@@ -58,7 +57,6 @@ const NotificationBadge = ({ count }) => {
 const AuthStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="PhoneInput" component={PhoneInputScreen} />
       <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
@@ -172,11 +170,22 @@ const MainStack = () => {
 // Root Navigator
 const AppNavigator = () => {
   const { isAuthenticated, loading } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
 
-  if (loading) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading || showSplash) {
     return (
       <View style={styles.loadingContainer}>
-        <LogoIcon size={64} />
+        <LogoIcon size={80} />
+        <Text style={styles.logoText}>one<Text style={{ color: '#2563EB' }}>market</Text></Text>
+        <Text style={styles.tagline}>Services at your fingertips</Text>
       </View>
     );
   }
@@ -202,6 +211,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
+  },
+  logoText: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 30,
+    color: '#111827',
+    letterSpacing: -0.5,
+    marginTop: 24,
+  },
+  tagline: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 8,
   },
   badge: {
     position: 'absolute',

@@ -9,6 +9,8 @@ import {
   Alert,
   Modal,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -122,7 +124,11 @@ const AddAddressScreen = ({ route, navigation }) => {
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <KeyboardAvoidingView
+      className="flex-1 bg-gray-50"
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
+    >
       {/* Header */}
       <View className="bg-white border-b border-gray-200 px-6 pt-12 pb-4 flex-row items-center">
         <TouchableOpacity
@@ -149,6 +155,7 @@ const AddAddressScreen = ({ route, navigation }) => {
           className="flex-1"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
+          showsVerticalScrollIndicator={false}
         >
           <View className="px-6 py-4">
             {/* Label Selection */}
@@ -443,7 +450,7 @@ const AddAddressScreen = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

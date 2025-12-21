@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
-import apiService from '../../services/api';
+import apiService, { ApiError } from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -46,12 +46,41 @@ const SignupScreen = ({ navigation, route }) => {
       });
 
       if (response.success) {
-        await login(response.data.token, response.data.user);
         Alert.alert('Success', 'Account created successfully!');
-        navigation.replace('Main');
+        // Pass both token and refreshToken to login
+        await login(response.data.token, response.data.refreshToken, response.data.user);
+        // Navigation is handled automatically by AuthContext - no manual navigation needed
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to create account');
+      if (error.code === 'RATE_LIMITED') {
+        Alert.alert(
+          'Please Wait',
+          `Too many requests. Try again in ${error.retryAfter} seconds.`
+        );
+      } else if (error.code === 'VALIDATION_ERROR') {
+        // Handle field-level validation errors
+        if (error.errors && error.errors.length > 0) {
+          const fieldErrors = {};
+          error.errors.forEach(err => {
+            // Map backend field names to frontend field names
+            const field = err.path || err.param;
+            if (field === 'profile.firstName' || field === 'firstName') {
+              fieldErrors.firstName = err.msg;
+            } else if (field === 'profile.lastName' || field === 'lastName') {
+              fieldErrors.lastName = err.msg;
+            }
+          });
+          setErrors(fieldErrors);
+
+          // Also show a general alert
+          const errorMsg = error.errors.map(e => e.msg).join('\n');
+          Alert.alert('Validation Error', errorMsg);
+        } else {
+          Alert.alert('Validation Error', error.message);
+        }
+      } else {
+        Alert.alert('Error', error.message || 'Failed to create account');
+      }
     } finally {
       setLoading(false);
     }

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../../components/common/Button';
 import OTPInput from '../../components/auth/OTPInput';
-import apiService from '../../services/api';
+import apiService, { ApiError } from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -56,12 +56,26 @@ const OTPVerificationScreen = ({ navigation, route }) => {
         if (response.data.isNewUser) {
           navigation.navigate('Signup', { phone: response.data.phone });
         } else {
-          await login(response.data.token, response.data.user);
-          navigation.replace('Main');
+          // Pass both token and refreshToken to login
+          await login(response.data.token, response.data.refreshToken, response.data.user);
+          // Navigation is handled automatically by AuthContext - no manual navigation needed
         }
       }
     } catch (error) {
-      setError(error.message || 'Invalid or expired code');
+      if (error.code === 'RATE_LIMITED') {
+        Alert.alert(
+          'Please Wait',
+          `Too many attempts. Try again in ${error.retryAfter} seconds.`
+        );
+        setError(`Too many attempts. Try again in ${error.retryAfter}s`);
+      } else if (error.code === 'VALIDATION_ERROR') {
+        const errorMsg = error.errors && error.errors.length > 0
+          ? error.errors.map(e => e.msg).join(', ')
+          : error.message;
+        setError(errorMsg);
+      } else {
+        setError(error.message || 'Invalid or expired code');
+      }
       setOtp('');
     } finally {
       setLoading(false);
@@ -90,7 +104,19 @@ const OTPVerificationScreen = ({ navigation, route }) => {
         setError('');
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to resend code');
+      if (error.code === 'RATE_LIMITED') {
+        Alert.alert(
+          'Please Wait',
+          `Too many requests. Try again in ${error.retryAfter} seconds.`
+        );
+      } else if (error.code === 'VALIDATION_ERROR') {
+        const errorMsg = error.errors && error.errors.length > 0
+          ? error.errors.map(e => e.msg).join(', ')
+          : error.message;
+        Alert.alert('Validation Error', errorMsg);
+      } else {
+        Alert.alert('Error', error.message || 'Failed to resend code');
+      }
     } finally {
       setResendLoading(false);
     }

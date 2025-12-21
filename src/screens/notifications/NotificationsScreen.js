@@ -67,14 +67,18 @@ const NotificationsScreen = () => {
         const notificationsList = response.data.notifications || response.data || [];
         const notifs = Array.isArray(notificationsList) ? notificationsList : [];
 
-        // Mark all notifications as read in UI immediately
-        const markedAsRead = notifs.map(n => ({ ...n, is_read: true }));
-        setNotifications(markedAsRead);
+        // Show notifications with their actual read state first
+        setNotifications(notifs);
 
-        // Mark all as read on server and update badge count
-        const hasUnread = notifs.some(n => !n.is_read);
+        // Mark all as read on server and update badge count after a delay
+        const hasUnread = notifs.some(n => !(n.is_read || n.isRead));
         if (hasUnread) {
-          markAllAsRead();
+          // Delay marking as read so user can see unread highlights
+          setTimeout(() => {
+            markAllAsRead();
+            // Also update local state to remove blue tint
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true, isRead: true })));
+          }, 1500);
         }
       }
     } catch (error) {
@@ -130,56 +134,62 @@ const NotificationsScreen = () => {
   const getIcon = (type) => NOTIFICATION_ICONS[type] || NOTIFICATION_ICONS.default;
   const getColor = (type) => NOTIFICATION_COLORS[type] || NOTIFICATION_COLORS.default;
 
-  const renderNotification = ({ item }) => (
-    <TouchableOpacity
-      className="flex-row items-start px-6 py-4"
-      activeOpacity={0.7}
-      onPress={() => handleNotificationPress(item)}
-    >
-      <View
-        className="w-11 h-11 rounded-full items-center justify-center mr-4"
-        style={{ backgroundColor: `${getColor(item.type)}15` }}
-      >
-        <Ionicons
-          name={getIcon(item.type)}
-          size={20}
-          color={getColor(item.type)}
-        />
-      </View>
+  const renderNotification = ({ item }) => {
+    // Handle both snake_case (API) and camelCase field names
+    const isRead = item.is_read || item.isRead;
+    const createdAt = item.created_at || item.createdAt;
 
-      <View className="flex-1">
-        <View className="flex-row items-start justify-between">
+    return (
+      <TouchableOpacity
+        className={`flex-row items-start px-6 py-4 ${!isRead ? 'bg-blue-50' : 'bg-white'}`}
+        activeOpacity={0.7}
+        onPress={() => handleNotificationPress(item)}
+      >
+        <View
+          className="w-11 h-11 rounded-full items-center justify-center mr-4"
+          style={{ backgroundColor: `${getColor(item.type)}15` }}
+        >
+          <Ionicons
+            name={getIcon(item.type)}
+            size={20}
+            color={getColor(item.type)}
+          />
+        </View>
+
+        <View className="flex-1">
+          <View className="flex-row items-start justify-between">
+            <Text
+              className={`text-sm flex-1 mr-2 ${
+                !isRead ? 'text-gray-900' : 'text-gray-600'
+              }`}
+              style={{ fontFamily: !isRead ? 'Poppins-SemiBold' : 'Poppins-Medium' }}
+              numberOfLines={1}
+            >
+              {item.title}
+            </Text>
+            <Text
+              className="text-xs text-gray-400"
+              style={{ fontFamily: 'Poppins-Regular' }}
+            >
+              {formatTime(createdAt)}
+            </Text>
+          </View>
+
           <Text
-            className={`text-sm flex-1 mr-2 ${
-              !item.is_read ? 'text-gray-900' : 'text-gray-600'
-            }`}
-            style={{ fontFamily: !item.is_read ? 'Poppins-SemiBold' : 'Poppins-Medium' }}
-            numberOfLines={1}
-          >
-            {item.title}
-          </Text>
-          <Text
-            className="text-xs text-gray-400"
+            className="text-sm text-gray-400 mt-1"
             style={{ fontFamily: 'Poppins-Regular' }}
+            numberOfLines={2}
           >
-            {formatTime(item.created_at)}
+            {item.message}
           </Text>
         </View>
 
-        <Text
-          className="text-sm text-gray-400 mt-1"
-          style={{ fontFamily: 'Poppins-Regular' }}
-          numberOfLines={2}
-        >
-          {item.message}
-        </Text>
-      </View>
-
-      {!item.is_read && (
-        <View className="w-2 h-2 rounded-full bg-primary mt-2 ml-2" />
-      )}
-    </TouchableOpacity>
-  );
+        {!isRead && (
+          <View className="w-2 h-2 rounded-full bg-primary mt-2 ml-2" />
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   const renderEmptyState = () => (
     <View className="flex-1 items-center justify-center px-6 py-20">

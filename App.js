@@ -1,9 +1,8 @@
 import './global.css';
-import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import * as Font from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
   Poppins_400Regular,
@@ -16,6 +15,9 @@ import { SocketProvider } from './src/context/SocketContext';
 import { NotificationProvider } from './src/context/NotificationContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     'Poppins-Regular': Poppins_400Regular,
@@ -24,12 +26,15 @@ export default function App() {
     'Poppins-Bold': Poppins_700Bold,
   });
 
+  useEffect(() => {
+    if (fontsLoaded) {
+      // Hide the native splash screen once fonts are loaded
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
   if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#2563EB" />
-      </View>
-    );
+    return null;
   }
 
   return (

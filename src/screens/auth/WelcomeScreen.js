@@ -1,81 +1,91 @@
 import React from 'react';
-import { View, Text, Dimensions } from 'react-native';
+import { View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../../components/common/Button';
-import { Logo, LogoIcon } from '../../components/common/Logo';
-
-const { height } = Dimensions.get('window');
+import Logo from '../../components/common/Logo';
 
 const WelcomeScreen = ({ navigation }) => {
-  const handleGetStarted = () => {
-    navigation.navigate('PhoneInput');
-  };
+  const features = [
+    { icon: 'search-outline', text: 'Find local services' },
+    { icon: 'shield-checkmark-outline', text: 'Verified professionals' },
+    { icon: 'calendar-outline', text: 'Easy booking' },
+    { icon: 'star-outline', text: 'Reviews & ratings' },
+  ];
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-1 px-8">
-        {/* Top Section - Logo & Branding */}
-        <View className="flex-1 items-center justify-center">
-          {/* Logo Icon - Large */}
-          <View className="mb-6">
-            <LogoIcon size={100} />
-          </View>
+      <View className="flex-1 px-8 pt-12">
+        {/* Logo */}
+        <View className="items-center mb-12">
+          <Logo size={100} showText={true} />
+        </View>
 
-          {/* App Name */}
+        {/* Features */}
+        <View className="flex-1">
           <Text
-            className="text-4xl text-gray-900 text-center tracking-tight"
-            style={{ fontFamily: 'Poppins-Bold', letterSpacing: -1 }}
-          >
-            onemarket
-          </Text>
-
-          {/* Tagline */}
-          <Text
-            className="text-base text-gray-400 text-center mt-3"
-            style={{ fontFamily: 'Poppins-Regular' }}
+            className="text-gray-900 mb-8"
+            style={{ fontFamily: 'Poppins-SemiBold', fontSize: 22 }}
           >
             Services at your fingertips
           </Text>
+
+          {features.map((feature, index) => (
+            <View key={index} className="flex-row items-center mb-5">
+              <View className="w-11 h-11 bg-blue-50 rounded-xl items-center justify-center mr-4">
+                <Ionicons name={feature.icon} size={22} color="#2563EB" />
+              </View>
+              <Text
+                className="text-gray-700 flex-1"
+                style={{ fontFamily: 'Poppins-Regular', fontSize: 15 }}
+              >
+                {feature.text}
+              </Text>
+            </View>
+          ))}
         </View>
 
-        {/* Middle Section - Features */}
-        <View className="py-8">
-          <View className="flex-row justify-center space-x-6">
-            <FeaturePill icon="shield-checkmark" label="Verified" />
-            <FeaturePill icon="flash" label="Instant" />
-            <FeaturePill icon="star" label="Rated" />
+        {/* Info Card */}
+        <View className="bg-gray-50 p-4 rounded-2xl mb-6">
+          <View className="flex-row items-center">
+            <View className="w-10 h-10 bg-blue-100 rounded-xl items-center justify-center mr-3">
+              <Ionicons name="location" size={20} color="#2563EB" />
+            </View>
+            <View className="flex-1">
+              <Text
+                className="text-gray-800"
+                style={{ fontFamily: 'Poppins-Medium', fontSize: 14 }}
+              >
+                Gabon Only
+              </Text>
+              <Text
+                className="text-gray-500"
+                style={{ fontFamily: 'Poppins-Regular', fontSize: 12 }}
+              >
+                Available for +241 numbers
+              </Text>
+            </View>
           </View>
         </View>
+      </View>
 
-        {/* Bottom Section - CTA */}
-        <View className="pb-8">
-          <Button title="Get Started" onPress={handleGetStarted} />
-
-          <Text
-            className="text-xs text-gray-400 text-center mt-5"
-            style={{ fontFamily: 'Poppins-Regular' }}
-          >
-            By continuing, you agree to our Terms of Service
-          </Text>
-        </View>
+      {/* Bottom Buttons */}
+      <View className="px-8 pb-8">
+        <Button
+          title="Sign In"
+          onPress={() => navigation.navigate('PhoneInput', { mode: 'signin' })}
+          icon={<Ionicons name="log-in-outline" size={20} color="#FFFFFF" />}
+        />
+        <View className="h-3" />
+        <Button
+          title="Sign Up"
+          onPress={() => navigation.navigate('PhoneInput', { mode: 'signup' })}
+          variant="outline"
+          icon={<Ionicons name="person-add-outline" size={20} color="#2563EB" />}
+        />
       </View>
     </SafeAreaView>
   );
 };
-
-const FeaturePill = ({ icon, label }) => (
-  <View className="items-center">
-    <View className="w-14 h-14 bg-blue-50 rounded-2xl items-center justify-center mb-2">
-      <Ionicons name={icon} size={24} color="#2563EB" />
-    </View>
-    <Text
-      className="text-xs text-gray-500"
-      style={{ fontFamily: 'Poppins-Medium' }}
-    >
-      {label}
-    </Text>
-  </View>
-);
 
 export default WelcomeScreen;

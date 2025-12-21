@@ -126,6 +126,7 @@ const ReviewScreen = ({ route, navigation }) => {
     <KeyboardAvoidingView
       className="flex-1 bg-gray-50"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
     >
       {/* Header */}
       <View className="bg-white border-b border-gray-200 px-6 pt-12 pb-4 flex-row items-center">
@@ -144,7 +145,12 @@ const ReviewScreen = ({ route, navigation }) => {
         </Text>
       </View>
 
-      <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        className="flex-1"
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Provider Info */}
         <View className="bg-white px-6 py-6 items-center border-b border-gray-200">
           {proAvatar ? (

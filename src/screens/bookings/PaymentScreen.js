@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import apiService from '../../services/api';
+import apiService, { ApiError } from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 import { COLORS } from '../../constants/colors';
 import { AuthContext } from '../../context/AuthContext';
@@ -114,7 +114,21 @@ const PaymentScreen = ({ route, navigation }) => {
     } catch (error) {
       console.error('Payment error:', error);
       setPaymentStatus(PAYMENT_STATUS.FAILED);
-      setErrorMessage(error.message || 'Failed to initiate payment');
+
+      if (error.code === 'RATE_LIMITED') {
+        const errorMsg = `Too many payment attempts. Try again in ${error.retryAfter} seconds.`;
+        setErrorMessage(errorMsg);
+        Alert.alert('Please Wait', errorMsg);
+      } else if (error.code === 'VALIDATION_ERROR') {
+        // Display validation errors
+        const errorMsg = error.errors && error.errors.length > 0
+          ? error.errors.map(e => e.msg).join('\n')
+          : error.message;
+        setErrorMessage(errorMsg);
+        Alert.alert('Validation Error', errorMsg);
+      } else {
+        setErrorMessage(error.message || 'Failed to initiate payment');
+      }
     }
   };
 

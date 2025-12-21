@@ -11,6 +11,7 @@ import {
   Image,
   Modal,
   Dimensions,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,8 +34,31 @@ const ChatScreen = ({ route, navigation }) => {
   const [sending, setSending] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+
+  // Track keyboard visibility
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setKeyboardVisible(true);
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   const {
     isConnected,
@@ -422,8 +446,9 @@ const ChatScreen = ({ route, navigation }) => {
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-gray-50"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
+      behavior="padding"
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -200}
+      enabled={Platform.OS === 'ios'}
     >
       {/* Header */}
       <View className="bg-white border-b border-gray-200 px-6 pt-12 pb-4 flex-row items-center">
@@ -490,8 +515,11 @@ const ChatScreen = ({ route, navigation }) => {
           paddingHorizontal: 16,
           paddingTop: 16,
           paddingBottom: 16,
+          flexGrow: 1,
         }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center py-16">
             <Ionicons name="chatbubbles-outline" size={48} color="#9CA3AF" />
@@ -504,6 +532,9 @@ const ChatScreen = ({ route, navigation }) => {
           </View>
         }
         onContentSizeChange={() => {
+          flatListRef.current?.scrollToEnd({ animated: false });
+        }}
+        onLayout={() => {
           flatListRef.current?.scrollToEnd({ animated: false });
         }}
       />

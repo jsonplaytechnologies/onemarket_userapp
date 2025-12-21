@@ -6,7 +6,7 @@ import Button from '../../components/common/Button';
 import CountryPicker from '../../components/common/CountryPicker';
 import { DEFAULT_COUNTRY } from '../../constants/countries';
 import { LogoIcon } from '../../components/common/Logo';
-import apiService from '../../services/api';
+import apiService, { ApiError } from '../../services/api';
 import { API_ENDPOINTS } from '../../constants/api';
 
 const MIN_PHONE_LENGTH = 8;
@@ -46,7 +46,20 @@ const PhoneInputScreen = ({ navigation }) => {
         });
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to send OTP');
+      if (error.code === 'RATE_LIMITED') {
+        Alert.alert(
+          'Please Wait',
+          `Too many requests. Try again in ${error.retryAfter} seconds.`
+        );
+      } else if (error.code === 'VALIDATION_ERROR') {
+        // Display validation errors
+        const errorMsg = error.errors && error.errors.length > 0
+          ? error.errors.map(e => e.msg).join('\n')
+          : error.message;
+        Alert.alert('Validation Error', errorMsg);
+      } else {
+        Alert.alert('Error', error.message || 'Failed to send OTP');
+      }
     } finally {
       setLoading(false);
     }

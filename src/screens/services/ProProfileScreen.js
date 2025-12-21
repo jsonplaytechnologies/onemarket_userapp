@@ -114,7 +114,6 @@ const ProProfileScreen = ({ route, navigation }) => {
   const completedBookings = pro.completed_bookings || pro.completedBookings || 0;
   const isVerified = pro.is_id_verified || pro.isIdVerified || pro.isVerified || false;
   const services = pro.services || [];
-  const zones = pro.zones || [];
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -304,38 +303,6 @@ const ProProfileScreen = ({ route, navigation }) => {
             })
           )}
         </View>
-
-        {/* Service Areas */}
-        {zones.length > 0 && (
-          <View className="bg-white mt-3 px-4 py-5">
-            <Text
-              className="text-base text-gray-900 mb-3"
-              style={{ fontFamily: 'Poppins-SemiBold' }}
-            >
-              Service Areas
-            </Text>
-
-            <View className="flex-row flex-wrap">
-              {zones.map((zone, index) => {
-                const zoneName = zone.zone_name || zone.zoneName || zone.name;
-                return (
-                  <View
-                    key={index}
-                    className="flex-row items-center bg-gray-100 rounded-full px-3 py-2 mr-2 mb-2"
-                  >
-                    <Ionicons name="location" size={14} color={COLORS.primary} />
-                    <Text
-                      className="text-xs text-gray-700 ml-1"
-                      style={{ fontFamily: 'Poppins-Medium' }}
-                    >
-                      {zoneName}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        )}
 
         {/* Reviews Section */}
         {reviews.length > 0 && (
