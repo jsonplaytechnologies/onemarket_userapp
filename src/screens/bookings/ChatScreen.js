@@ -60,12 +60,21 @@ const ChatScreen = ({ route, navigation }) => {
     };
   }, []);
 
+  // Cleanup typing timeout on unmount to prevent orphaned timeout firing after disconnect
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const {
     isConnected,
     messages,
     setMessages,
     isProTyping,
-    send,
+    sendAsync,
     typing,
     markRead,
   } = useBookingSocket(bookingId);
@@ -117,25 +126,47 @@ const ChatScreen = ({ route, navigation }) => {
       setSending(true);
       setMessageText('');
 
-      const response = await apiService.post(API_ENDPOINTS.BOOKING_MESSAGES(bookingId), {
-        content: trimmedText,
-        messageType: 'text',
-      });
-
-      if (response.success && response.data) {
-        const newMessage = response.data.message || response.data;
-        setMessages((prev) => {
-          const prevMessages = Array.isArray(prev) ? prev : [];
-          const exists = prevMessages.some((m) => m.id === newMessage.id);
-          if (!exists) {
-            return [...prevMessages, newMessage];
-          }
-          return prevMessages;
-        });
-      }
-
       if (isConnected) {
-        send(trimmedText, 'text');
+        // Socket is connected - send via socket only, it will broadcast back
+        try {
+          await sendAsync(trimmedText, 'text');
+        } catch (error) {
+          // Socket failed, fall back to API
+          console.log('Socket send failed, falling back to API:', error);
+          const response = await apiService.post(API_ENDPOINTS.BOOKING_MESSAGES(bookingId), {
+            content: trimmedText,
+            messageType: 'text',
+          });
+          if (response.success && response.data) {
+            // Add message since socket didn't work
+            const newMessage = response.data.message || response.data;
+            setMessages((prev) => {
+              const prevMessages = Array.isArray(prev) ? prev : [];
+              const exists = prevMessages.some((m) => m.id === newMessage.id);
+              if (!exists) {
+                return [...prevMessages, newMessage];
+              }
+              return prevMessages;
+            });
+          }
+        }
+      } else {
+        // No socket - use API and add message directly
+        const response = await apiService.post(API_ENDPOINTS.BOOKING_MESSAGES(bookingId), {
+          content: trimmedText,
+          messageType: 'text',
+        });
+        if (response.success && response.data) {
+          const newMessage = response.data.message || response.data;
+          setMessages((prev) => {
+            const prevMessages = Array.isArray(prev) ? prev : [];
+            const exists = prevMessages.some((m) => m.id === newMessage.id);
+            if (!exists) {
+              return [...prevMessages, newMessage];
+            }
+            return prevMessages;
+          });
+        }
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -207,6 +238,10 @@ const ChatScreen = ({ route, navigation }) => {
         }
       );
 
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -240,7 +275,10 @@ const ChatScreen = ({ route, navigation }) => {
       typing(true);
 
       typingTimeoutRef.current = setTimeout(() => {
-        typing(false);
+        // Check isConnected before calling typing() to avoid wasted calls after disconnect
+        if (isConnected) {
+          typing(false);
+        }
       }, 2000);
     }
   };

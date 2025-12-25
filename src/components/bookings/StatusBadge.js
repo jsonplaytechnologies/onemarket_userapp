@@ -2,6 +2,36 @@ import React from 'react';
 import { View, Text } from 'react-native';
 
 const STATUS_CONFIG = {
+  // Phase 2 Auto Path Statuses
+  pending_assignment: {
+    label: 'Finding Pro',
+    bgColor: '#FEF9C3',
+    textColor: '#CA8A04',
+  },
+  finding_provider: {
+    label: 'Finding Pro',
+    bgColor: '#FEF9C3',
+    textColor: '#CA8A04',
+  },
+
+  // Phase 2 Limbo States
+  waiting_approval: {
+    label: 'Awaiting Response',
+    bgColor: '#DBEAFE',
+    textColor: '#1E40AF',
+  },
+  waiting_quote: {
+    label: 'Discussing Scope',
+    bgColor: '#E0E7FF',
+    textColor: '#3730A3',
+  },
+  waiting_acceptance: {
+    label: 'Quote Received',
+    bgColor: '#EDE9FE',
+    textColor: '#5B21B6',
+  },
+
+  // Legacy Statuses
   pending: {
     label: 'Pending',
     bgColor: '#FEF3C7',
@@ -21,6 +51,16 @@ const STATUS_CONFIG = {
     label: 'Quote Sent',
     bgColor: '#EDE9FE',
     textColor: '#7C3AED',
+  },
+  quote_rejected: {
+    label: 'Quote Rejected',
+    bgColor: '#FEE2E2',
+    textColor: '#B91C1C',
+  },
+  quote_expired: {
+    label: 'Quote Expired',
+    bgColor: '#FEF3C7',
+    textColor: '#B45309',
   },
   paid: {
     label: 'Paid',
@@ -56,6 +96,11 @@ const STATUS_CONFIG = {
     label: 'Cancelled',
     bgColor: '#F3F4F6',
     textColor: '#6B7280',
+  },
+  failed: {
+    label: 'Failed',
+    bgColor: '#FEE2E2',
+    textColor: '#B91C1C',
   },
 };
 

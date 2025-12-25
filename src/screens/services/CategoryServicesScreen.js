@@ -228,9 +228,8 @@ const CategoryServicesScreen = ({ route, navigation }) => {
               }}
               activeOpacity={0.9}
               onPress={() =>
-                navigation.navigate('FindPros', {
-                  serviceId: service.id,
-                  serviceName: service.name,
+                navigation.navigate('ServiceQuestions', {
+                  service: service,
                 })
               }
             >

@@ -24,6 +24,17 @@ const BookingCard = ({ booking, onPress }) => {
     // Review status
     has_review,
     hasReview,
+    // Phase 2 fields
+    booking_path,
+    bookingPath,
+    is_book_now,
+    isBookNow,
+    requested_datetime,
+    requestedDatetime,
+    current_limbo_state,
+    currentLimboState,
+    limbo_timeout_at,
+    limboTimeoutAt,
   } = booking;
 
   const displayBookingNumber = bookingNumber || booking_number;
@@ -51,8 +62,16 @@ const BookingCard = ({ booking, onPress }) => {
     return price.toLocaleString() + ' XAF';
   };
 
+  // Phase 2 display values
+  const displayBookingPath = booking_path || bookingPath;
+  const displayIsBookNow = is_book_now ?? isBookNow;
+  const displayRequestedDatetime = requested_datetime || requestedDatetime;
+  const displayLimboState = current_limbo_state || currentLimboState;
+  const displayLimboTimeout = limbo_timeout_at || limboTimeoutAt;
+
   const needsAction = [
     'quotation_sent',
+    'waiting_acceptance',
     'job_start_requested',
     'job_complete_requested',
   ].includes(status);
@@ -60,6 +79,17 @@ const BookingCard = ({ booking, onPress }) => {
   // Check if completed but not reviewed
   const isReviewed = has_review || hasReview;
   const needsReview = status === 'completed' && !isReviewed;
+
+  const formatScheduledTime = (datetime) => {
+    if (!datetime) return null;
+    const date = new Date(datetime);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   return (
     <TouchableOpacity
@@ -160,6 +190,44 @@ const BookingCard = ({ booking, onPress }) => {
           >
             Rate your experience with {proFirstName || 'the provider'}
           </Text>
+        </View>
+      )}
+
+      {/* Phase 2 Info Section */}
+      {(displayBookingPath || (displayRequestedDatetime && !displayIsBookNow)) && (
+        <View className="flex-row items-center mt-3 pt-3 border-t border-gray-100 flex-wrap">
+          {/* Booking Path Badge */}
+          {displayBookingPath && (
+            <View className="flex-row items-center mr-3 mb-1">
+              <Ionicons
+                name={displayBookingPath === 'auto' ? 'flash' : 'person'}
+                size={12}
+                color={displayBookingPath === 'auto' ? '#3B82F6' : '#6B7280'}
+              />
+              <Text
+                className="text-xs ml-1"
+                style={{
+                  fontFamily: 'Poppins-Regular',
+                  color: displayBookingPath === 'auto' ? '#3B82F6' : '#6B7280',
+                }}
+              >
+                {displayBookingPath === 'auto' ? 'Auto-matched' : 'You chose'}
+              </Text>
+            </View>
+          )}
+
+          {/* Scheduled Time Badge */}
+          {displayRequestedDatetime && !displayIsBookNow && (
+            <View className="flex-row items-center mb-1">
+              <Ionicons name="calendar-outline" size={12} color="#6B7280" />
+              <Text
+                className="text-xs text-gray-500 ml-1"
+                style={{ fontFamily: 'Poppins-Regular' }}
+              >
+                {formatScheduledTime(displayRequestedDatetime)}
+              </Text>
+            </View>
+          )}
         </View>
       )}
     </TouchableOpacity>

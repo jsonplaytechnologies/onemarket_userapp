@@ -133,9 +133,18 @@ class ApiService {
       delete config.headers['Content-Type'];
     }
 
+    // Add timeout to prevent infinite loading (15 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     try {
       console.log('API Request:', `${this.baseURL}${endpoint}`, config);
-      const response = await fetch(`${this.baseURL}${endpoint}`, config);
+      const response = await fetch(`${this.baseURL}${endpoint}`, {
+        ...config,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
 
       console.log('API Response Status:', response.status);
       const data = await response.json();
@@ -233,10 +242,23 @@ class ApiService {
 
       return data;
     } catch (error) {
+      clearTimeout(timeoutId);
+
       // Re-throw ApiError as-is
       if (error instanceof ApiError) {
         throw error;
       }
+
+      // Handle timeout/abort error
+      if (error.name === 'AbortError') {
+        console.error('API Timeout:', endpoint);
+        throw new ApiError(
+          'Request timed out. Please check your connection and try again.',
+          0,
+          'TIMEOUT_ERROR'
+        );
+      }
+
       // Wrap other errors
       console.error('API Error:', error);
       console.error('API Error Message:', error.message);

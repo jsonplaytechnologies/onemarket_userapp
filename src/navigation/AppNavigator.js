@@ -32,6 +32,14 @@ import EditProfileScreen from '../screens/profile/EditProfileScreen';
 
 // Booking Flow Screens
 import CreateBookingScreen from '../screens/bookings/CreateBookingScreen';
+import ServiceQuestionsScreen from '../screens/bookings/ServiceQuestionsScreen';
+import AddressSelectionScreen from '../screens/bookings/AddressSelectionScreen';
+import BookingDescriptionScreen from '../screens/bookings/BookingDescriptionScreen';
+import BookingPathScreen from '../screens/bookings/BookingPathScreen';
+import TimeSelectionScreen from '../screens/bookings/TimeSelectionScreen';
+import ProviderSelectionScreen from '../screens/bookings/ProviderSelectionScreen';
+import ProviderCalendarScreen from '../screens/bookings/ProviderCalendarScreen';
+import FindingProviderScreen from '../screens/bookings/FindingProviderScreen';
 import BookingDetailsScreen from '../screens/bookings/BookingDetailsScreen';
 import ChatScreen from '../screens/bookings/ChatScreen';
 import PaymentScreen from '../screens/bookings/PaymentScreen';
@@ -159,6 +167,14 @@ const MainStack = () => {
 
       {/* Booking Flow Screens */}
       <Stack.Screen name="CreateBooking" component={CreateBookingScreen} />
+      <Stack.Screen name="ServiceQuestions" component={ServiceQuestionsScreen} />
+      <Stack.Screen name="AddressSelection" component={AddressSelectionScreen} />
+      <Stack.Screen name="BookingDescription" component={BookingDescriptionScreen} />
+      <Stack.Screen name="BookingPath" component={BookingPathScreen} />
+      <Stack.Screen name="TimeSelection" component={TimeSelectionScreen} />
+      <Stack.Screen name="ProviderSelection" component={ProviderSelectionScreen} />
+      <Stack.Screen name="ProviderCalendar" component={ProviderCalendarScreen} />
+      <Stack.Screen name="FindingProvider" component={FindingProviderScreen} />
       <Stack.Screen name="BookingDetails" component={BookingDetailsScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="Payment" component={PaymentScreen} />

@@ -5,6 +5,11 @@ import { COLORS } from '../../constants/colors';
 
 const TIMELINE_STEPS = [
   { key: 'pending', label: 'Booking Created', icon: 'create-outline' },
+  { key: 'pending_assignment', label: 'Finding Provider', icon: 'search-outline', phase2Only: true },
+  { key: 'finding_provider', label: 'Finding Provider', icon: 'search-outline', phase2Only: true },
+  { key: 'waiting_approval', label: 'Awaiting Response', icon: 'time-outline', phase2Only: true },
+  { key: 'waiting_quote', label: 'Discussing Scope', icon: 'chatbubbles-outline', phase2Only: true },
+  { key: 'waiting_acceptance', label: 'Quote Received', icon: 'document-text-outline', phase2Only: true },
   { key: 'accepted', label: 'Accepted', icon: 'checkmark-outline' },
   { key: 'quotation_sent', label: 'Quotation Received', icon: 'document-text-outline' },
   { key: 'paid', label: 'Payment Confirmed', icon: 'card-outline' },
@@ -17,6 +22,11 @@ const TIMELINE_STEPS = [
 
 const STATUS_ORDER = [
   'pending',
+  'pending_assignment',
+  'finding_provider',
+  'waiting_approval',
+  'waiting_quote',
+  'waiting_acceptance',
   'accepted',
   'quotation_sent',
   'paid',
